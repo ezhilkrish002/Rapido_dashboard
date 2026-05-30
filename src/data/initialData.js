@@ -1,0 +1,95 @@
+// Initial embedded dataset from the original spreadsheet.
+// Can be overwritten at runtime by uploading an updated Excel file.
+
+export const INITIAL_DAILY = [
+  { Date: '2026-04-26', Distance: 14, DailyPetrol: 42, Commission: 84.41, Amount: 99, Tips: 4, Cash: 50, Gpay: 53, Incentive: 0, Total: 103, Detection: 14.59, Petrol: 100, Wallet: 0, Profit: 46.41, Orders: 2 },
+  { Date: '2026-05-02', Distance: 6, DailyPetrol: 18, Commission: 65.44, Amount: 84, Tips: 16, Cash: 0, Gpay: 100, Incentive: 0, Total: 100, Detection: 18.56, Petrol: 0, Wallet: 0, Profit: 63.44, Orders: 1 },
+  { Date: '2026-05-03', Distance: 72, DailyPetrol: 216, Commission: 524.13, Amount: 644, Tips: 50, Cash: 285, Gpay: 409, Incentive: 45, Total: 739, Detection: 103.34, Petrol: 350, Wallet: 185.45, Profit: 419.66, Orders: 9 },
+  { Date: '2026-05-04', Distance: 43, DailyPetrol: 129, Commission: 433.04, Amount: 550, Tips: 106, Cash: 255, Gpay: 401, Incentive: 0, Total: 656, Detection: 116.97, Petrol: 200, Wallet: 0, Profit: 410.03, Orders: 10 },
+  { Date: '2026-05-05', Distance: 33, DailyPetrol: 99, Commission: 204.63, Amount: 265, Tips: 176, Cash: 120, Gpay: 321, Incentive: 0, Total: 441, Detection: 60.39, Petrol: 0, Wallet: 59, Profit: 281.61, Orders: 5 },
+  { Date: '2026-05-06', Distance: 25, DailyPetrol: 75, Commission: 203.21, Amount: 251, Tips: 12, Cash: 40, Gpay: 223, Incentive: 10, Total: 273, Detection: 47.79, Petrol: 200, Wallet: 0, Profit: 150.21, Orders: 5 },
+  { Date: '2026-05-07', Distance: 40, DailyPetrol: 120, Commission: 385.23, Amount: 492, Tips: 18, Cash: 41, Gpay: 469, Incentive: 0, Total: 510, Detection: 115.8, Petrol: 0, Wallet: 63, Profit: 274.2, Orders: 10 },
+  { Date: '2026-05-08', Distance: 40, DailyPetrol: 120, Commission: 319.87, Amount: 360, Tips: 59, Cash: 173, Gpay: 246, Incentive: 0, Total: 419, Detection: 49.14, Petrol: 0, Wallet: 137, Profit: 249.86, Orders: 5 },
+  { Date: '2026-05-09', Distance: 40, DailyPetrol: 120, Commission: 315.07, Amount: 364, Tips: 9, Cash: 111, Gpay: 262, Incentive: 3.07, Total: 376.07, Detection: 61, Petrol: 100, Wallet: 0, Profit: 195.07, Orders: 6 },
+  { Date: '2026-05-10', Distance: 30, DailyPetrol: 90, Commission: 258.89, Amount: 333, Tips: 46, Cash: 120, Gpay: 259, Incentive: 10, Total: 389, Detection: 73.12, Petrol: 100, Wallet: 0, Profit: 225.88, Orders: 6 },
+  { Date: '2026-05-11', Distance: 36, DailyPetrol: 108, Commission: 314.9, Amount: 378, Tips: 45, Cash: 80, Gpay: 343, Incentive: 0, Total: 423, Detection: 63.1, Petrol: 150, Wallet: 149, Profit: 251.9, Orders: 6 },
+  { Date: '2026-05-12', Distance: 4, DailyPetrol: 12, Commission: 21.91, Amount: 33, Tips: 0, Cash: 0, Gpay: 33, Incentive: 0, Total: 33, Detection: 20, Petrol: 0, Wallet: 0, Profit: 1, Orders: 1 },
+  { Date: '2026-05-13', Distance: 50, DailyPetrol: 150, Commission: 318.69, Amount: 413, Tips: 26, Cash: 150, Gpay: 289, Incentive: 250, Total: 689, Detection: 94.31, Petrol: 230, Wallet: 0, Profit: 444.69, Orders: 7 },
+  { Date: '2026-05-14', Distance: 48, DailyPetrol: 144, Commission: 373.74, Amount: 457, Tips: 36, Cash: 209, Gpay: 284, Incentive: 36.66, Total: 529.66, Detection: 87.26, Petrol: 0, Wallet: 0, Profit: 298.4, Orders: 7 },
+  { Date: '2026-05-15', Distance: 23, DailyPetrol: 69, Commission: 166.28, Amount: 182, Tips: 178, Cash: 250, Gpay: 110, Incentive: 1.45, Total: 361.45, Detection: 34.17, Petrol: 100, Wallet: 0, Profit: 258.28, Orders: 3 },
+  { Date: '2026-05-17', Distance: 25, DailyPetrol: 75, Commission: 280.51, Amount: 293, Tips: 112, Cash: 155, Gpay: 250, Incentive: 0, Total: 405, Detection: 21.49, Petrol: 0, Wallet: 0, Profit: 308.51, Orders: 4 },
+  { Date: '2026-05-18', Distance: 19, DailyPetrol: 57, Commission: 114.87, Amount: 157, Tips: 8, Cash: 0, Gpay: 165, Incentive: 0, Total: 165, Detection: 42.13, Petrol: 100, Wallet: 0, Profit: 65.87, Orders: 2 },
+  { Date: '2026-05-23', Distance: 5, DailyPetrol: 15, Commission: 41.06, Amount: 57, Tips: 0, Cash: 0, Gpay: 57, Incentive: 0, Total: 57, Detection: 15.94, Petrol: 0, Wallet: 0, Profit: 26.06, Orders: 1 },
+  { Date: '2026-05-24', Distance: 65, DailyPetrol: 195, Commission: 626.67, Amount: 785, Tips: 108, Cash: 390, Gpay: 503, Incentive: 74, Total: 967, Detection: 167.33, Petrol: 310, Wallet: 106, Profit: 604.67, Orders: 15 },
+  { Date: '2026-05-25', Distance: 14, DailyPetrol: 42, Commission: 89.74, Amount: 124, Tips: 37, Cash: 100, Gpay: 61, Incentive: 0, Total: 161, Detection: 34.26, Petrol: 220, Wallet: 61, Profit: 84.74, Orders: 2 },
+  { Date: '2026-05-27', Distance: 31, DailyPetrol: 93, Commission: 264.15, Amount: 358, Tips: 25, Cash: 0, Gpay: 383, Incentive: 0, Total: 383, Detection: 93.85, Petrol: 0, Wallet: 107, Profit: 196.15, Orders: 6 },
+  { Date: '2026-05-28', Distance: 58, DailyPetrol: 174, Commission: 494.56, Amount: 638, Tips: 51, Cash: 141, Gpay: 546, Incentive: 37.17, Total: 724.17, Detection: 139.61, Petrol: 0, Wallet: 140, Profit: 410.56, Orders: 8 },
+  { Date: '2026-05-29', Distance: 25, DailyPetrol: 75, Commission: 221.32, Amount: 273, Tips: 117, Cash: 100, Gpay: 290, Incentive: 3.36, Total: 393.36, Detection: 43.04, Petrol: 220, Wallet: 40, Profit: 275.32, Orders: 5 },
+];
+
+export const INITIAL_RIDES = [
+  { SNo: 1, Date: '2026-04-26', Detection: 1.28, Commission: 51.72, Amount: 53, Tips: 0, Total: 53, PayMode: 'Gpay', Wallet: 0, Petrol: 100, Incentive: 0 },
+  { SNo: 2, Date: '2026-04-26', Detection: 13.31, Commission: 32.69, Amount: 46, Tips: 4, Total: 50, PayMode: 'Cash', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 3, Date: '2026-05-02', Detection: 18.56, Commission: 65.44, Amount: 84, Tips: 16, Total: 100, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 4, Date: '2026-05-03', Detection: 12.01, Commission: 51.99, Amount: 64, Tips: 1, Total: 65, PayMode: 'Cash', Wallet: 0, Petrol: 350, Incentive: 0 },
+  { SNo: 5, Date: '2026-05-03', Detection: 10.92, Commission: 25.08, Amount: 36, Tips: 4, Total: 40, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 6, Date: '2026-05-03', Detection: 4.05, Commission: 66.95, Amount: 71, Tips: 0, Total: 71, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 7, Date: '2026-05-03', Detection: 25.48, Commission: 71.52, Amount: 97, Tips: 0, Total: 97, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 8, Date: '2026-05-03', Detection: 13.55, Commission: 33.45, Amount: 47, Tips: 3, Total: 50, PayMode: 'Cash', Wallet: 0, Petrol: 0, Incentive: 10 },
+  { SNo: 9, Date: '2026-05-03', Detection: 14.31, Commission: 85.69, Amount: 100, Tips: 20, Total: 120, PayMode: 'Cash', Wallet: 55, Petrol: 0, Incentive: 0 },
+  { SNo: 10, Date: '2026-05-03', Detection: 0, Commission: 130.45, Amount: 147, Tips: 13, Total: 160, PayMode: 'Gpay', Wallet: 130.45, Petrol: 0, Incentive: 0 },
+  { SNo: 11, Date: '2026-05-03', Detection: 11.51, Commission: 29.5, Amount: 41, Tips: 9, Total: 50, PayMode: 'Cash', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 12, Date: '2026-05-03', Detection: 11.51, Commission: 29.5, Amount: 41, Tips: 0, Total: 41, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 35 },
+  { SNo: 13, Date: '2026-05-04', Detection: 13.6, Commission: 71.4, Amount: 85, Tips: 15, Total: 100, PayMode: 'Gpay', Wallet: 0, Petrol: 200, Incentive: 0 },
+  { SNo: 14, Date: '2026-05-04', Detection: 13.08, Commission: 60.92, Amount: 74, Tips: 0, Total: 74, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 15, Date: '2026-05-04', Detection: 11.6, Commission: 31.4, Amount: 43, Tips: 2, Total: 45, PayMode: 'Cash', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 16, Date: '2026-05-04', Detection: 11.7, Commission: 33.3, Amount: 45, Tips: 5, Total: 50, PayMode: 'Cash', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 17, Date: '2026-05-04', Detection: 12.51, Commission: 49.5, Amount: 62, Tips: 8, Total: 70, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 18, Date: '2026-05-04', Detection: 11.84, Commission: 36.16, Amount: 48, Tips: 0, Total: 48, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 19, Date: '2026-05-04', Detection: 11.65, Commission: 32.35, Amount: 44, Tips: 0, Total: 44, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 20, Date: '2026-05-04', Detection: 11.98, Commission: 39.02, Amount: 51, Tips: 49, Total: 100, PayMode: 'Cash', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 21, Date: '2026-05-04', Detection: 7.03, Commission: 39.97, Amount: 47, Tips: 18, Total: 65, PayMode: 'Gpay', Wallet: 0, Petrol: 0, Incentive: 0 },
+  { SNo: 22, Date: '2026-05-04', Detection: 11.98, Commission: 39.02, Amount: 51, Tips: 9, Total: 60, PayMode: 'Cash', Wallet: 0, Petrol: 0, Incentive: 0 },
+];
+
+export const EXPENSES = [
+  { Reason: 'nira', Cash: -200, Gpay: 200 },
+  { Reason: 'bun', Cash: 0, Gpay: -40 },
+  { Reason: 'wallet', Cash: 0, Gpay: -314 },
+  { Reason: 'petrol', Cash: -600, Gpay: -450 },
+  { Reason: 'petrol', Cash: -150, Gpay: 0 },
+  { Reason: 'customer bal', Cash: 500, Gpay: -420 },
+  { Reason: 'customer bal', Cash: 500, Gpay: -380 },
+  { Reason: 'corn', Cash: -30, Gpay: 0 },
+  { Reason: 'bal', Cash: -27, Gpay: 0 },
+  { Reason: 'gpay', Cash: 15, Gpay: -15 },
+  { Reason: 'bal', Cash: -230, Gpay: 0 },
+  { Reason: 'food', Cash: 0, Gpay: -40 },
+  { Reason: 'bal', Cash: -20, Gpay: 0 },
+  { Reason: 'petrol', Cash: -120, Gpay: 120 },
+  { Reason: 'metro', Cash: 0, Gpay: -100 },
+  { Reason: 'petrol', Cash: -100, Gpay: 0 },
+  { Reason: 'petrol', Cash: -310, Gpay: 0 },
+  { Reason: 'bal', Cash: -180, Gpay: 0 },
+  { Reason: 'juice', Cash: 0, Gpay: -37 },
+  { Reason: 'petrol', Cash: -220, Gpay: 60 },
+  { Reason: 'petrol', Cash: -220, Gpay: 0 },
+  { Reason: 'cash input', Cash: 100, Gpay: 0 },
+  { Reason: 'cash out nira', Cash: -100, Gpay: 0 },
+];
+
+export const CHART_COLORS = [
+  '#f7c948',
+  '#3b82f6',
+  '#10b981',
+  '#f43f5e',
+  '#a855f7',
+  '#f97316',
+  '#06b6d4',
+];
+
+/** Fallback when built-in ride log is incomplete (matches original spreadsheet). */
+export const WALLET_META = {
+  balance: 0.97,
+  recharge: 1047.45,
+};

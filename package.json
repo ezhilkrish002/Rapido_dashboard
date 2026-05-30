@@ -1,0 +1,24 @@
+{
+  "name": "rapido-earnings-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Rapido earnings dashboard built with React, Vite and Tailwind CSS v4",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.12.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "^4.0.0",
+    "vite": "^5.4.10"
+  }
+}

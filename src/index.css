@@ -1,0 +1,310 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #0a0d14;
+  --color-surface: #111520;
+  --color-surface2: #181e2e;
+  --color-border-dark: #1e2740;
+  --color-accent: #f7c948;
+  --color-accent-blue: #3b82f6;
+  --color-accent-green: #10b981;
+  --color-accent-red: #f43f5e;
+  --color-accent-purple: #a855f7;
+  --color-accent-orange: #f97316;
+  --color-accent-cyan: #06b6d4;
+  --color-text-main: #e8ecf5;
+  --color-muted: #6b7a9e;
+
+  --font-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: var(--color-bg);
+    color: var(--color-text-main);
+    font-family: var(--font-sans);
+    overflow-x: hidden;
+  }
+
+  #root {
+    min-height: 100vh;
+    position: relative;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-bg);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-border-dark);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-muted);
+  }
+}
+
+@layer utilities {
+  .font-mono-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* ── Background orbs ─────────────────────────────────────────────────── */
+.orb {
+  opacity: 0.35;
+}
+.orb-gold { background: radial-gradient(circle, #f7c948 0%, transparent 70%); }
+.orb-blue { background: radial-gradient(circle, #3b82f6 0%, transparent 70%); }
+.orb-green { background: radial-gradient(circle, #10b981 0%, transparent 70%); }
+.orb-purple { background: radial-gradient(circle, #a855f7 0%, transparent 70%); }
+
+@keyframes float-slow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, 20px) scale(1.08); }
+}
+@keyframes float-medium {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-25px, 30px) scale(1.05); }
+}
+@keyframes float-fast {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(15px, -20px); }
+}
+.animate-float-slow { animation: float-slow 14s ease-in-out infinite; }
+.animate-float-medium { animation: float-medium 10s ease-in-out infinite; }
+.animate-float-fast { animation: float-fast 7s ease-in-out infinite; }
+
+/* ── Entrance animations ─────────────────────────────────────────────── */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-in {
+  animation: fade-in 0.4s ease both;
+}
+.animate-scale-in {
+  animation: scale-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-slide-in {
+  animation: slide-in-right 0.4s ease both;
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+.stagger-5 { animation-delay: 0.25s; }
+.stagger-6 { animation-delay: 0.3s; }
+.stagger-7 { animation-delay: 0.35s; }
+.stagger-8 { animation-delay: 0.4s; }
+
+/* ── Profit hero ─────────────────────────────────────────────────────── */
+.profit-hero {
+  background: linear-gradient(135deg, rgba(247, 201, 72, 0.12) 0%, rgba(17, 21, 32, 0.95) 45%, rgba(10, 13, 20, 0.98) 100%);
+  box-shadow:
+    0 0 0 1px rgba(247, 201, 72, 0.15),
+    0 20px 50px -20px rgba(247, 201, 72, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.profit-hero-glow {
+  background: radial-gradient(ellipse at 20% 50%, rgba(247, 201, 72, 0.2), transparent 60%);
+  animation: hero-glow 4s ease-in-out infinite alternate;
+}
+
+@keyframes hero-glow {
+  from { opacity: 0.6; }
+  to { opacity: 1; }
+}
+
+@keyframes profit-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(247, 201, 72, 0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(247, 201, 72, 0); }
+}
+.profit-pulse {
+  animation: profit-pulse 2s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.profit-shimmer {
+  background: linear-gradient(90deg, #f7c948 0%, #ffe082 35%, #f7c948 70%, #e6b020 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 4s linear infinite;
+}
+
+/* ── Glass panels & chips ────────────────────────────────────────────── */
+.glass-panel {
+  background: rgba(17, 21, 32, 0.75);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(30, 39, 64, 0.8);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+}
+.glass-panel:hover {
+  border-color: rgba(247, 201, 72, 0.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.glass-chip {
+  background: rgba(24, 30, 46, 0.85);
+  border: 1px solid rgba(30, 39, 64, 0.9);
+  backdrop-filter: blur(8px);
+}
+
+/* ── Featured stat card (profit) ───────────────────────────────────── */
+.stat-featured {
+  background: linear-gradient(145deg, rgba(247, 201, 72, 0.14) 0%, rgba(17, 21, 32, 0.95) 100%);
+  border-color: rgba(247, 201, 72, 0.45) !important;
+  box-shadow:
+    0 0 24px rgba(247, 201, 72, 0.15),
+    inset 0 1px 0 rgba(247, 201, 72, 0.1);
+}
+.stat-featured::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(247, 201, 72, 0.5), transparent 50%, rgba(247, 201, 72, 0.2));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: border-spin 6s linear infinite;
+}
+@keyframes border-spin {
+  to { filter: hue-rotate(360deg); }
+}
+
+/* ── Profit cell highlight ─────────────────────────────────────────── */
+.profit-cell-high {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981 !important;
+  box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.08);
+}
+.profit-cell-mid {
+  background: rgba(247, 201, 72, 0.1);
+  color: #f7c948 !important;
+}
+.profit-cell-low {
+  color: #e8ecf5 !important;
+}
+
+.profit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 11px;
+  animation: scale-in 0.3s ease both;
+}
+.profit-badge-high {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+.profit-badge-mid {
+  background: rgba(247, 201, 72, 0.15);
+  color: #f7c948;
+  border: 1px solid rgba(247, 201, 72, 0.35);
+}
+
+/* ── Wallet balance colors ───────────────────────────────────────────── */
+.wallet-positive {
+  color: #10b981 !important;
+}
+.wallet-negative {
+  color: #f43f5e !important;
+}
+.wallet-neutral {
+  color: #6b7a9e !important;
+}
+.wallet-positive-bg {
+  background: rgba(16, 185, 129, 0.12);
+}
+.wallet-negative-bg {
+  background: rgba(244, 63, 94, 0.12);
+}
+
+/* ── Tab content transition ──────────────────────────────────────────── */
+.tab-content-enter {
+  animation: fade-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* ── Table row hover glow ────────────────────────────────────────────── */
+.row-glow {
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.row-glow:hover {
+  transform: translateX(2px);
+  box-shadow: inset 3px 0 0 #f7c948;
+}
+
+/* Recharts */
+.recharts-default-tooltip {
+  background: #181e2e !important;
+  border: 1px solid #1e2740 !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  animation: fade-in 0.2s ease both;
+}
+.recharts-legend-item-text {
+  color: #6b7a9e !important;
+  font-size: 11px !important;
+}
+.recharts-bar-rectangle {
+  transition: opacity 0.2s;
+}
+.recharts-bar-rectangle:hover {
+  opacity: 0.85;
+}
+
+@media (max-width: 480px) {
+  body { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
