@@ -64,13 +64,21 @@ export default function App() {
         setDateFilter('all');
         setFileInputKey((k) => k + 1);
 
-        const expenseCount =
-          result.expenses !== null ? result.expenses.length : '—';
-
-        toast.success(
-          `Updated! ${result.daily.length} days · ${result.rides.length} rides · ${expenseCount} expenses`,
-          5000
-        );
+        if (result.expensesFound) {
+          toast.success(
+            `Updated! ${result.daily.length} days · ${result.rides.length} rides · ${result.expenses.length} expenses (sheet: ${result.expenseSheetName})`,
+            5000
+          );
+        } else {
+          toast.success(
+            `Updated! ${result.daily.length} days · ${result.rides.length} rides`,
+            4000
+          );
+          toast.info(
+            `Expense sheet not found. Sheets in file: ${result.sheetNames.join(', ')}. Add a sheet named "Expense" with Reason, Cash, Gpay columns.`,
+            7000
+          );
+        }
       } catch (err) {
         toast.dismiss(loadingId);
         console.error('Upload failed:', err);
@@ -259,10 +267,12 @@ export default function App() {
           )}
           {tab === 'expenses' && (
             <ExpensesTab
+              key={`expenses-${uploadId}`}
               stats={stats}
               expPie={expPie}
               expenses={expenses}
               walletRecharge={walletStats.recharge}
+              uploadId={uploadId}
             />
           )}
         </div>

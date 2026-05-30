@@ -11,9 +11,15 @@ import { fmt } from '../utils/format.js';
 import { CHART_COLORS } from '../data/initialData.js';
 import { walletColor } from '../utils/wallet.js';
 
-export default function ExpensesTab({ stats, expPie, expenses = [], walletRecharge = 0 }) {
+export default function ExpensesTab({
+  stats,
+  expPie,
+  expenses = [],
+  walletRecharge = 0,
+  uploadId = 0,
+}) {
   const walletBalance = stats.walletBalance ?? 0;
-  const chartKey = `${expenses.length}-${stats.totalProfit || 0}-${walletRecharge}`;
+  const chartKey = `u${uploadId}-${expenses.length}-${stats.totalProfit || 0}`;
 
   const summaryCards = [
     { label: 'Total Revenue', value: stats.totalRevenue, color: '#3b82f6', isWallet: false },
@@ -103,7 +109,7 @@ export default function ExpensesTab({ stats, expPie, expenses = [], walletRechar
               <tbody>
                 {expenses.map((e, i) => (
                   <tr
-                    key={i}
+                    key={`${uploadId}-${e.Reason}-${i}`}
                     className={[
                       'border-b border-[#1e2740] transition-colors hover:bg-[#181e2e]',
                       /wallet/i.test(e.Reason) ? 'bg-[#a855f7]/5' : '',

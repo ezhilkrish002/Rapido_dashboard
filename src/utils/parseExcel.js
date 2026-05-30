@@ -86,9 +86,24 @@ function detectHeaderRow(matrix, kind) {
     rides: (labels) =>
       labels.some((l) => l.includes('date')) &&
       (labels.some((l) => l.includes('amount') || l.includes('commission') || l.includes('total'))),
-    expenses: (labels) =>
-      labels.some((l) => l.includes('reason') || l.includes('particular') || l.includes('description')) &&
-      (labels.some((l) => l.includes('cash') || l.includes('gpay'))),
+    expenses: (labels) => {
+      const hasPayment = labels.some(
+        (l) => l.includes('cash') || l.includes('gpay') || l.includes('online') || l.includes('upi')
+      );
+      const hasLabel = labels.some(
+        (l) =>
+          l.includes('reason') ||
+          l.includes('particular') ||
+          l.includes('description') ||
+          l.includes('item') ||
+          l.includes('expense') ||
+          l.includes('details') ||
+          l.includes('name') ||
+          l.includes('remark')
+      );
+      // Reason column may have blank header — accept Cash + Gpay headers only
+      return hasPayment && (hasLabel || labels.filter((l) => l.includes('cash') || l.includes('gpay')).length >= 1);
+    },
   };
 
   const test = rules[kind] || rules.daily;
@@ -165,12 +180,66 @@ function isRideRow(idx) {
   return sno !== undefined && !isNaN(+sno) && +sno > 0;
 }
 
+function pickReason(idx) {
+  const direct = pick(idx, [
+    'Reason', 'Description', 'Item', 'Name', 'Particulars', 'Particular',
+    'Expense', 'Details', 'Remarks', 'Remark', 'Category', 'Type',
+  ]);
+  if (direct !== undefined && direct !== '') return String(direct).trim();
+
+  const fuzzy =
+    pickByContains(idx, 'reason') ??
+    pickByContains(idx, 'particular') ??
+    pickByContains(idx, 'description') ??
+    pickByContains(idx, 'item') ??
+    pickByContains(idx, 'expense');
+  if (fuzzy !== undefined && fuzzy !== '') return String(fuzzy).trim();
+
+  // First unlabeled / ColumnN field with text (common when reason has no header)
+  for (const [k, v] of Object.entries(idx)) {
+    if (!/^column\d+$/.test(k)) continue;
+    const text = String(v ?? '').trim();
+    if (!text || text.toLowerCase() === 'total') continue;
+    if (!isNaN(+text) && text.length < 4) continue;
+    return text;
+  }
+
+  // First non-numeric column that isn't cash/gpay/wallet
+  for (const [k, v] of Object.entries(idx)) {
+    if (k.includes('cash') || k.includes('gpay') || k.includes('wallet') || k.includes('online')) continue;
+    if (k.includes('sno') || k === 'date') continue;
+    const text = String(v ?? '').trim();
+    if (!text || text.toLowerCase() === 'total') continue;
+    if (!isNaN(+text) && Math.abs(+text) > 999) continue;
+    return text;
+  }
+
+  return '';
+}
+
 function isExpenseRow(idx) {
-  const reason = pick(idx, ['Reason', 'Description', 'Item', 'Name', 'Particulars']);
-  if (!reason || String(reason).toLowerCase().includes('total')) return false;
-  const cash = toNum(pick(idx, ['Cash']));
-  const gpay = toNum(pick(idx, ['Gpay', 'GPay', 'G Pay', 'Online']));
-  return cash !== 0 || gpay !== 0 || String(reason).trim().length > 0;
+  const reason = pickReason(idx);
+  if (reason && reason.toLowerCase().includes('total')) return false;
+
+  const cash = toNum(pick(idx, ['Cash', 'Cash Out', 'Cash In']));
+  const gpay = toNum(
+    pick(idx, ['Gpay', 'GPay', 'G Pay', 'Online', 'UPI', 'PhonePe', 'Paytm']) ??
+      pickByContains(idx, 'gpay')
+  );
+
+  if (cash !== 0 || gpay !== 0) return true;
+  return reason.length > 0;
+}
+
+function parseExpenseRow(idx) {
+  return {
+    Reason: pickReason(idx),
+    Cash: toNum(pick(idx, ['Cash', 'Cash Out', 'Cash In'])),
+    Gpay: toNum(
+      pick(idx, ['Gpay', 'GPay', 'G Pay', 'Online', 'UPI', 'PhonePe', 'Paytm']) ??
+        pickByContains(idx, 'gpay')
+    ),
+  };
 }
 
 function parseWalletMetaFromWorkbook(wb) {
@@ -269,12 +338,74 @@ function parseDailyRow(idx) {
   };
 }
 
-function parseExpenseRow(idx) {
-  return {
-    Reason: String(pick(idx, ['Reason', 'Description', 'Item', 'Name', 'Particulars']) ?? '').trim(),
-    Cash: toNum(pick(idx, ['Cash'])),
-    Gpay: toNum(pick(idx, ['Gpay', 'GPay', 'G Pay', 'Online'])),
-  };
+function sheetLooksLikeExpenses(sheet) {
+  if (!sheet?.['!ref']) return false;
+  const matrix = utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+  if (!matrix.length) return false;
+
+  const headerIdx = detectHeaderRow(matrix, 'expenses');
+  const labels = rowLabels(matrix[headerIdx]);
+  const hasPayment = labels.some(
+    (l) => l.includes('cash') || l.includes('gpay') || l.includes('online')
+  );
+  const hasReason = labels.some(
+    (l) =>
+      l.includes('reason') ||
+      l.includes('particular') ||
+      l.includes('item') ||
+      l.includes('expense') ||
+      l.includes('description')
+  );
+  if (!hasPayment) return false;
+  if (hasReason) return true;
+
+  // Blank reason header but cash/gpay columns — check first data row
+  const sample = matrix.slice(headerIdx + 1, headerIdx + 4);
+  return sample.some((row) => {
+    if (!row?.some((c) => c !== '' && c != null)) return false;
+    const idx = indexRow(
+      Object.fromEntries(
+        matrix[headerIdx].map((h, i) => [String(h || `Column${i + 1}`).trim(), row[i] ?? ''])
+      )
+    );
+    return isExpenseRow(idx);
+  });
+}
+
+function isDataSheetName(name) {
+  const c = canon(name);
+  return c === 'daily' || c.includes('rapido') || c.includes('ride');
+}
+
+function findExpenseSheet(wb) {
+  const byName = findSheet(
+    wb,
+    ['Expense', 'Expenses', 'Exp', 'EXPENSE', 'expense'],
+    [/expense/i, /^exp$/i, /expences/i]
+  );
+  if (byName) {
+    const name = wb.SheetNames.find((n) => wb.Sheets[n] === byName);
+    return { sheet: byName, sheetName: name || 'Expense' };
+  }
+
+  for (const name of wb.SheetNames) {
+    if (isDataSheetName(name)) continue;
+    const sheet = wb.Sheets[name];
+    if (sheetLooksLikeExpenses(sheet)) {
+      return { sheet, sheetName: name };
+    }
+  }
+
+  return { sheet: null, sheetName: null };
+}
+
+function parseExpensesFromSheet(sheet) {
+  const rawExp = readSheetAsObjects(sheet, 'expenses');
+  return rawExp
+    .map(indexRow)
+    .filter(isExpenseRow)
+    .map(parseExpenseRow)
+    .filter((e) => e.Reason || e.Cash !== 0 || e.Gpay !== 0);
 }
 
 function findSheet(wb, exactNames, patterns) {
@@ -320,23 +451,18 @@ function parseWorkbook(buffer) {
     })
     .map((r, i) => normalizeRide({ ...r, SNo: i + 1 }, i));
 
-  const expenseSheet = findSheet(wb, ['Expense', 'Expenses', 'Exp'], [/expense/i, /^exp$/i]);
-  let expenses = null;
-  if (expenseSheet) {
-    const rawExp = readSheetAsObjects(expenseSheet, 'expenses');
-    expenses = rawExp
-      .map(indexRow)
-      .filter(isExpenseRow)
-      .map(parseExpenseRow)
-      .filter((e) => e.Reason);
-  }
+  const { sheet: expenseSheet, sheetName: expenseSheetName } = findExpenseSheet(wb);
+  const expensesFound = !!expenseSheet;
+  const expenses = expenseSheet ? parseExpensesFromSheet(expenseSheet) : [];
 
   const walletMeta = parseWalletMetaFromWorkbook(wb);
 
   return {
     daily: cloneData(daily),
     rides: cloneData(rides),
-    expenses: expenses ? cloneData(expenses) : null,
+    expenses: cloneData(expenses),
+    expensesFound,
+    expenseSheetName,
     walletMeta,
     sheetNames,
   };
@@ -369,7 +495,15 @@ export function parseExcelFile(file) {
           return;
         }
 
-        const { daily, rides, expenses, walletMeta, sheetNames } = parseWorkbook(buffer);
+        const {
+          daily,
+          rides,
+          expenses,
+          expensesFound,
+          expenseSheetName,
+          walletMeta,
+          sheetNames,
+        } = parseWorkbook(buffer);
 
         if (!daily.length) {
           resolve({
@@ -385,6 +519,8 @@ export function parseExcelFile(file) {
           daily,
           rides,
           expenses,
+          expensesFound,
+          expenseSheetName,
           walletMeta,
           sheetNames,
         });

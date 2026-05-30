@@ -44,10 +44,17 @@ export function buildDashboardFromExcel(result, previous) {
   const uploadId = (previous.uploadId ?? 0) + 1;
   const updatedAt = new Date().toLocaleString();
 
+  // Always replace expenses when the expense sheet exists in the workbook
+  const expenses = result.expensesFound
+    ? result.expenses
+    : previous.expenses;
+
   return {
     daily: result.daily,
     rides: result.rides,
-    expenses: result.expenses !== null ? result.expenses : previous.expenses,
+    expenses,
+    expensesFound: result.expensesFound,
+    expenseSheetName: result.expenseSheetName,
     walletMeta: {
       balance: result.walletMeta?.balance ?? null,
       recharge: result.walletMeta?.recharge ?? null,
