@@ -189,6 +189,7 @@ export function buildChartDataFromDaily(filteredDaily) {
       CumProfit: +cumProfit.toFixed(0),
       CumRevenue: +cumRevenue.toFixed(0),
       Detection: +(d.Detection || 0),
+      Distance: +(d.Distance || 0),
       Incentive: incentive,
       HasIncentive: incentive > 0,
       IncentiveLabel: incentive > 0 ? `+₹${Math.round(incentive)}` : '',

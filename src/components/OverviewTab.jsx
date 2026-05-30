@@ -250,8 +250,96 @@ export default function OverviewTab({
           sectionRef={chartsSectionRef}
         />
 
-        {/* ── ROW 1: TREND + PAYMENT SPLIT ──────────────────────────────── */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* ── ROW 1: PERFORMANCE TREND (first chart) ─────────────────────── */}
+        <Panel title="🚀 Performance Trend (Profit, Detection & Distance)">
+          {incentiveDays.length > 0 && (
+            <div className="mb-3 truncate text-[11px] text-[#f97316] sm:text-xs">
+              🎯 {incentiveDays.length} incentive day{incentiveDays.length > 1 ? 's' : ''}:{' '}
+              {incentiveDays
+                .map((d) => `${d.label} ₹${Math.round(d.Incentive)}`)
+                .join(' · ')}
+            </div>
+          )}
+          <ChartBox size="lg" chartKey={`perf-${chartKey}`}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                key={`perf-${chartKey}`}
+                data={chartData}
+                margin={{ top: 8, right: 12, left: 0, bottom: 4 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e2740" vertical={false} />
+                <XAxis
+                  {...axisX}
+                  tick={(props) => (
+                    <IncentiveAxisTick {...props} chartData={chartData} />
+                  )}
+                />
+                <YAxis
+                  yAxisId="left"
+                  {...axisY}
+                  tickFormatter={(v) => `₹${v}`}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  stroke="#6b7a9e"
+                  tick={{ fontSize: 10, fill: '#6b7a9e' }}
+                  tickLine={false}
+                  axisLine={false}
+                  width={48}
+                  tickFormatter={(v) => `${v}km`}
+                />
+                <Tooltip
+                  content={<PerformanceTooltip />}
+                  cursor={{ stroke: 'rgba(232,236,245,0.35)', strokeWidth: 1 }}
+                />
+                <Legend
+                  verticalAlign="bottom"
+                  wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+                  iconSize={10}
+                />
+                <Bar
+                  yAxisId="left"
+                  dataKey="Profit"
+                  radius={[4, 4, 0, 0]}
+                  name="Daily Profit"
+                  maxBarSize={32}
+                >
+                  {chartData.map((entry, i) => (
+                    <Cell
+                      key={i}
+                      fill={entry.HasIncentive ? '#f97316' : '#f7c948'}
+                    />
+                  ))}
+                </Bar>
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="Detection"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                  name="Detection"
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="Distance"
+                  stroke="#8b5cf6"
+                  strokeWidth={2.5}
+                  strokeDasharray="5 5"
+                  dot={{ r: 3, fill: '#8b5cf6', strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }}
+                  name="Distance"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </ChartBox>
+        </Panel>
+
+        {/* ── ROW 2: TREND + PAYMENT SPLIT ──────────────────────────────── */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel title="📈 Profit & Revenue Trend" className="lg:col-span-2">
           <ChartBox size="md" chartKey={`trend-${chartKey}`}>
             <ResponsiveContainer width="100%" height="100%">
@@ -339,97 +427,9 @@ export default function OverviewTab({
             ))}
           </div>
         </Panel>
-      </div>
+        </div>
 
-      {/* ── ROW 2: PERFORMANCE TREND ──────────────────────────────────── */}
-      <Panel title="🚀 Performance Trend (Profit vs Detection)">
-        {incentiveDays.length > 0 && (
-          <div className="mb-3 truncate text-[11px] text-[#f97316] sm:text-xs">
-            🎯 {incentiveDays.length} incentive day{incentiveDays.length > 1 ? 's' : ''}:{' '}
-            {incentiveDays
-              .map((d) => `${d.label} ₹${Math.round(d.Incentive)}`)
-              .join(' · ')}
-          </div>
-        )}
-        <ChartBox size="lg" chartKey={`perf-${chartKey}`}>
-          <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart
-              key={`perf-${chartKey}`}
-              data={chartData}
-              margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e2740" vertical={false} />
-              <XAxis
-                {...axisX}
-                tick={(props) => (
-                  <IncentiveAxisTick {...props} chartData={chartData} />
-                )}
-              />
-              <YAxis
-                yAxisId="left"
-                {...axisY}
-                tickFormatter={(v) => `₹${v}`}
-              />
-              <YAxis
-                yAxisId="right"
-                orientation="right"
-                stroke="#6b7a9e"
-                tick={{ fontSize: 10, fill: '#6b7a9e' }}
-                tickLine={false}
-                axisLine={false}
-                width={44}
-                tickFormatter={(v) => `${v}km`}
-              />
-              <Tooltip
-                content={<PerformanceTooltip />}
-                cursor={{ stroke: 'rgba(232,236,245,0.35)', strokeWidth: 1 }}
-              />
-              <Legend
-                verticalAlign="bottom"
-                wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
-                iconSize={10}
-              />
-              <Bar
-                yAxisId="left"
-                dataKey="Profit"
-                radius={[4, 4, 0, 0]}
-                name="Daily Profit"
-                maxBarSize={32}
-              >
-                {chartData.map((entry, i) => (
-                  <Cell
-                    key={i}
-                    fill={entry.HasIncentive ? '#f97316' : '#f7c948'}
-                  />
-                ))}
-              </Bar>
-              <Line
-                yAxisId="left"
-                type="monotone"
-                dataKey="Detection"
-                stroke="#10b981"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
-                name="Detection"
-              />
-              <Line
-                yAxisId="right"
-                type="monotone"
-                dataKey="Distance"
-                stroke="#8b5cf6"
-                strokeWidth={2}
-                strokeDasharray="5 5"
-                dot={{ r: 3, fill: '#8b5cf6', strokeWidth: 0 }}
-                activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }}
-                name="Distance"
-              />
-            </ComposedChart>
-          </ResponsiveContainer>
-        </ChartBox>
-      </Panel>
-
-      {/* ── ROW 3: ORDERS + REVENUE BREAKDOWN ─────────────────────────── */}
+        {/* ── ROW 3: ORDERS + REVENUE BREAKDOWN ─────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel title="🛵 Daily Orders & Profit/Order">
           <ChartBox size="sm">
