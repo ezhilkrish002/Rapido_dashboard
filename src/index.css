@@ -60,6 +60,29 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
   }
+
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .date-input {
+    color-scheme: dark;
+  }
+
+  .date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.95;
+    filter: invert(0.9);
+  }
+
+  .date-input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+    filter: invert(1);
+  }
 }
 
 /* ── Background orbs ─────────────────────────────────────────────────── */

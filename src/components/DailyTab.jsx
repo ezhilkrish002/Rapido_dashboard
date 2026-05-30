@@ -14,18 +14,24 @@ import WalletValue from './WalletValue.jsx';
 import { fmt } from '../utils/format.js';
 import { profitCellClass, profitBadgeClass } from '../utils/profit.js';
 import { walletSignClass } from '../utils/wallet.js';
+import { dateFilterLabel, isActiveFilter } from '../utils/dateFilter.js';
 
 const TH =
   'whitespace-nowrap px-2 sm:px-3.5 py-2.5 sm:py-3 text-right text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6b7a9e]';
 const TD = 'px-2 sm:px-3.5 py-2 sm:py-2.5 text-right whitespace-nowrap';
 
-export default function DailyTab({ filteredDaily, chartData, walletBalance = 0 }) {
+export default function DailyTab({ filteredDaily, chartData, walletBalance = 0, dateFilter = { preset: 'all' } }) {
   const sum = (key) => filteredDaily.reduce((s, r) => s + r[key], 0);
   const totalProfit = sum('Profit');
-  const chartKey = `${filteredDaily.length}-${totalProfit}`;
+  const chartKey = `${dateFilter?.preset}-${filteredDaily.length}-${totalProfit}`;
 
   return (
     <div className="space-y-4">
+      {isActiveFilter(dateFilter) && (
+        <div className="animate-fade-in rounded-xl border border-[#3b82f6]/30 bg-[#3b82f6]/10 px-4 py-2 text-xs text-[#3b82f6] sm:text-sm">
+          Filter: <strong>{dateFilterLabel(dateFilter)}</strong> ({filteredDaily.length} days)
+        </div>
+      )}
       <WalletBalanceBanner balance={walletBalance} compact />
 
       <div className="glass-panel animate-fade-in-up rounded-xl p-3 sm:p-4 md:p-5">

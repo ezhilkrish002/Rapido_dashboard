@@ -4,6 +4,7 @@ import WalletValue from './WalletValue.jsx';
 import { fmt, fmtD } from '../utils/format.js';
 import { normalizePayMode } from '../utils/normalize.js';
 import { walletColor, walletSignClass, fmtWalletBalance } from '../utils/wallet.js';
+import { dateFilterLabel, isActiveFilter } from '../utils/dateFilter.js';
 
 const TH =
   'whitespace-nowrap px-2 sm:px-3.5 py-2.5 sm:py-3 text-[10px] sm:text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6b7a9e]';
@@ -13,6 +14,7 @@ export default function RidesTab({
   totalOrders = 0,
   allRidesCount = 0,
   walletBalance = 0,
+  dateFilter = { preset: 'all' },
 }) {
   const gpayCount = rides.filter((r) => normalizePayMode(r.PayMode) === 'Gpay').length;
   const cashCount = rides.filter((r) => normalizePayMode(r.PayMode) === 'Cash').length;
@@ -24,6 +26,11 @@ export default function RidesTab({
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      {isActiveFilter(dateFilter) && (
+        <div className="animate-fade-in rounded-xl border border-[#3b82f6]/30 bg-[#3b82f6]/10 px-4 py-2 text-xs text-[#3b82f6] sm:text-sm">
+          Filter: <strong>{dateFilterLabel(dateFilter)}</strong> ({rides.length} rides)
+        </div>
+      )}
       {showUploadHint && (
         <div className="animate-fade-in-up rounded-xl border border-[#f7c948]/30 bg-[#f7c948]/10 px-4 py-3 text-xs text-[#f7c948] sm:text-sm">
           ⚠️ Showing {allRidesCount} rides in log vs {totalOrders} orders in daily summary.

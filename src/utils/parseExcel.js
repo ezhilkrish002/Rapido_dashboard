@@ -101,8 +101,8 @@ function detectHeaderRow(matrix, kind) {
           l.includes('name') ||
           l.includes('remark')
       );
-      // Reason column may have blank header — accept Cash + Gpay headers only
-      return hasPayment && (hasLabel || labels.filter((l) => l.includes('cash') || l.includes('gpay')).length >= 1);
+      const hasDate = labels.some((l) => l.includes('date'));
+      return hasPayment && (hasLabel || hasDate || labels.filter((l) => l.includes('cash') || l.includes('gpay')).length >= 1);
     },
   };
 
@@ -232,6 +232,7 @@ function isExpenseRow(idx) {
 }
 
 function parseExpenseRow(idx) {
+  const date = toDate(pick(idx, ['Date']));
   return {
     Reason: pickReason(idx),
     Cash: toNum(pick(idx, ['Cash', 'Cash Out', 'Cash In'])),
@@ -239,6 +240,7 @@ function parseExpenseRow(idx) {
       pick(idx, ['Gpay', 'GPay', 'G Pay', 'Online', 'UPI', 'PhonePe', 'Paytm']) ??
         pickByContains(idx, 'gpay')
     ),
+    ...(date ? { Date: date } : {}),
   };
 }
 

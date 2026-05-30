@@ -1,3 +1,4 @@
+import { useMemo, useRef, useState } from 'react';
 import {
   AreaChart,
   Area,
@@ -19,9 +20,16 @@ import {
 import StatCard from './StatCard.jsx';
 import CustomTooltip from './CustomTooltip.jsx';
 import ProfitHero from './ProfitHero.jsx';
+import ChartPeriodFilter from './ChartPeriodFilter.jsx';
 import { fmt } from '../utils/format.js';
 import { CHART_COLORS } from '../data/initialData.js';
 import { walletColor, fmtWalletBalance } from '../utils/wallet.js';
+import {
+  dateFilterLabel,
+  isActiveFilter,
+  filterChartPeriod,
+  buildChartDataFromDaily,
+} from '../utils/dateFilter.js';
 import WalletBalanceBanner from './WalletBalanceBanner.jsx';
 
 function Panel({ title, children, className = '' }) {
@@ -70,23 +78,94 @@ const axisY = {
   width: 42,
 };
 
+function formatPerfValue(p) {
+  const v = p.value;
+  if (p.dataKey === 'Distance') {
+    return `${typeof v === 'number' ? v.toFixed(1) : v} km`;
+  }
+  return `₹${typeof v === 'number' ? v.toFixed(1) : v}`;
+}
+
+function PerformanceTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload;
+  return (
+    <div className="rounded-lg border border-[#1e2740] bg-[#181e2e] px-3.5 py-2.5 text-xs shadow-lg">
+      <div className="mb-1.5 font-semibold text-[#6b7a9e]">{label}</div>
+      {payload.map((p) => (
+        <div key={p.dataKey} className="mb-0.5" style={{ color: p.color }}>
+          {p.name}:{' '}
+          <strong className="font-mono-num">{formatPerfValue(p)}</strong>
+        </div>
+      ))}
+      {row?.HasIncentive && (
+        <div className="mt-1.5 border-t border-[#1e2740] pt-1.5 font-semibold text-[#f97316]">
+          🎯 Incentive received: ₹{Math.round(row.Incentive)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function IncentiveAxisTick({ x, y, payload, chartData }) {
+  const row = chartData.find((d) => d.label === payload?.value);
+  const highlight = row?.HasIncentive;
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <text
+        x={0}
+        y={0}
+        dy={12}
+        textAnchor="middle"
+        fill={highlight ? '#f97316' : '#6b7a9e'}
+        fontSize={10}
+        fontWeight={highlight ? 600 : 400}
+      >
+        {payload?.value}
+      </text>
+    </g>
+  );
+}
+
 export default function OverviewTab({
   stats,
-  chartData,
+  filteredDaily = [],
   paymentPie,
   revenueBreakdown,
   weekdayData,
+  dateFilter = { preset: 'all' },
 }) {
-  const chartKey = `${chartData.length}-${stats.totalProfit || 0}-${stats.totalRevenue || 0}`;
+  const [chartPeriod, setChartPeriod] = useState('all');
+  const chartsSectionRef = useRef(null);
+
+  const chartData = useMemo(() => {
+    const periodRows = filterChartPeriod(filteredDaily, chartPeriod);
+    return buildChartDataFromDaily(periodRows);
+  }, [filteredDaily, chartPeriod, dateFilter]);
+
+  const chartKey = `${dateFilter?.preset}-${chartPeriod}-${chartData.length}-${stats.totalProfit || 0}`;
+  const incentiveDays = chartData.filter((d) => d.HasIncentive);
 
   return (
     <div className="space-y-4 sm:space-y-5">
+      {isActiveFilter(dateFilter) && (
+        <div className="animate-fade-in rounded-xl border border-[#3b82f6]/30 bg-[#3b82f6]/10 px-4 py-2 text-xs text-[#3b82f6] sm:text-sm">
+          Cards & stats: <strong>{dateFilterLabel(dateFilter)}</strong> ({stats.workDays || 0} days)
+        </div>
+      )}
+
+      {stats.workDays === 0 && (
+        <div className="rounded-xl border border-[#f43f5e]/30 bg-[#f43f5e]/10 px-4 py-3 text-sm text-[#f43f5e]">
+          No data for this filter. Try <strong>All</strong> or widen your custom date range.
+        </div>
+      )}
+
       <ProfitHero key={chartKey} stats={stats} />
 
       <WalletBalanceBanner balance={stats.walletBalance ?? 0} compact />
 
-      {/* ── KPI CARDS ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5 md:grid-cols-3 lg:grid-cols-4">
+      {/* ── KPI CARDS (3×3 on desktop) ─────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3.5 md:grid-cols-3">
         <StatCard
           label="Net Profit"
           value={fmt(stats.totalProfit || 0)}
@@ -159,7 +238,19 @@ export default function OverviewTab({
         />
       </div>
 
-      {/* ── ROW 1: TREND + PAYMENT SPLIT ──────────────────────────────── */}
+      <section
+        ref={chartsSectionRef}
+        className="space-y-4 sm:space-y-5"
+        aria-label="Charts"
+      >
+        <ChartPeriodFilter
+          period={chartPeriod}
+          onPeriod={setChartPeriod}
+          dataPoints={chartData.length}
+          sectionRef={chartsSectionRef}
+        />
+
+        {/* ── ROW 1: TREND + PAYMENT SPLIT ──────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel title="📈 Profit & Revenue Trend" className="lg:col-span-2">
           <ChartBox size="md" chartKey={`trend-${chartKey}`}>
@@ -250,23 +341,30 @@ export default function OverviewTab({
         </Panel>
       </div>
 
-      {/* ── ROW 2: PERFORMANCE TREND (FULL WIDTH) ─────────────────────── */}
-      <Panel title="🚀 Performance Trend (Profit vs 3-Day Moving Average)">
+      {/* ── ROW 2: PERFORMANCE TREND ──────────────────────────────────── */}
+      <Panel title="🚀 Performance Trend (Profit vs Detection)">
+        {incentiveDays.length > 0 && (
+          <div className="mb-3 truncate text-[11px] text-[#f97316] sm:text-xs">
+            🎯 {incentiveDays.length} incentive day{incentiveDays.length > 1 ? 's' : ''}:{' '}
+            {incentiveDays
+              .map((d) => `${d.label} ₹${Math.round(d.Incentive)}`)
+              .join(' · ')}
+          </div>
+        )}
         <ChartBox size="lg" chartKey={`perf-${chartKey}`}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               key={`perf-${chartKey}`}
               data={chartData}
-              margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
+              margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
             >
-              <defs>
-                <linearGradient id="gPerfBar" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#f7c948" stopOpacity={0.95} />
-                  <stop offset="100%" stopColor="#f7c948" stopOpacity={0.55} />
-                </linearGradient>
-              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e2740" vertical={false} />
-              <XAxis {...axisX} />
+              <XAxis
+                {...axisX}
+                tick={(props) => (
+                  <IncentiveAxisTick {...props} chartData={chartData} />
+                )}
+              />
               <YAxis
                 yAxisId="left"
                 {...axisY}
@@ -275,35 +373,55 @@ export default function OverviewTab({
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                {...axisY}
+                stroke="#6b7a9e"
+                tick={{ fontSize: 10, fill: '#6b7a9e' }}
+                tickLine={false}
+                axisLine={false}
+                width={44}
                 tickFormatter={(v) => `${v}km`}
               />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
+              <Tooltip
+                content={<PerformanceTooltip />}
+                cursor={{ stroke: 'rgba(232,236,245,0.35)', strokeWidth: 1 }}
+              />
+              <Legend
+                verticalAlign="bottom"
+                wrapperStyle={{ fontSize: 11, paddingTop: 12 }}
+                iconSize={10}
+              />
               <Bar
                 yAxisId="left"
                 dataKey="Profit"
-                fill="url(#gPerfBar)"
-                radius={[5, 5, 0, 0]}
+                radius={[4, 4, 0, 0]}
                 name="Daily Profit"
-              />
+                maxBarSize={32}
+              >
+                {chartData.map((entry, i) => (
+                  <Cell
+                    key={i}
+                    fill={entry.HasIncentive ? '#f97316' : '#f7c948'}
+                  />
+                ))}
+              </Bar>
               <Line
                 yAxisId="left"
                 type="monotone"
-                dataKey="MA3"
+                dataKey="Detection"
                 stroke="#10b981"
-                strokeWidth={2.5}
+                strokeWidth={2}
                 dot={false}
-                name="3-Day Avg"
+                activeDot={{ r: 4, fill: '#10b981', stroke: '#fff', strokeWidth: 2 }}
+                name="Detection"
               />
               <Line
                 yAxisId="right"
                 type="monotone"
                 dataKey="Distance"
-                stroke="#a855f7"
+                stroke="#8b5cf6"
                 strokeWidth={2}
-                strokeDasharray="4 4"
-                dot={false}
+                strokeDasharray="5 5"
+                dot={{ r: 3, fill: '#8b5cf6', strokeWidth: 0 }}
+                activeDot={{ r: 4, fill: '#8b5cf6', stroke: '#fff', strokeWidth: 2 }}
                 name="Distance"
               />
             </ComposedChart>
@@ -514,6 +632,7 @@ export default function OverviewTab({
           </ResponsiveContainer>
         </ChartBox>
       </Panel>
+      </section>
     </div>
   );
 }

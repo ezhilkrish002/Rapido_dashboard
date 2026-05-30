@@ -7,7 +7,14 @@ import DailyTab from './components/DailyTab.jsx';
 import RidesTab from './components/RidesTab.jsx';
 import ExpensesTab from './components/ExpensesTab.jsx';
 import { parseExcelFile } from './utils/parseExcel.js';
-import { filterByDateRange } from './utils/dateFilter.js';
+import {
+  DEFAULT_DATE_FILTER,
+  filterByDateRange,
+  filterExpensesByDateRange,
+  getDataDateBounds,
+  buildChartDataFromDaily,
+  isActiveFilter,
+} from './utils/dateFilter.js';
 import { computeWalletStats } from './utils/wallet.js';
 import {
   loadDashboardFromStorage,
@@ -16,27 +23,17 @@ import {
 } from './utils/dashboardState.js';
 import { useToast } from './context/ToastContext.jsx';
 
-function buildExpPie(expenses) {
-  const byReason = {};
-  expenses.forEach((e) => {
-    const total = Math.abs(e.Cash) + Math.abs(e.Gpay);
-    byReason[e.Reason] = (byReason[e.Reason] || 0) + total;
-  });
-  return Object.entries(byReason)
-    .map(([k, v]) => ({ name: k, value: +v.toFixed(0) }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 7);
-}
-
 export default function App() {
   const { toast } = useToast();
   const [dashboard, setDashboard] = useState(loadDashboardFromStorage);
   const [tab, setTab] = useState('overview');
-  const [dateFilter, setDateFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState(DEFAULT_DATE_FILTER);
   const [uploading, setUploading] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
 
   const { daily, rides, expenses, walletMeta, lastUpdated, uploadId } = dashboard;
+
+  const dataBounds = useMemo(() => getDataDateBounds(daily), [daily, uploadId]);
 
   const handleFile = useCallback(
     async (e) => {
@@ -61,7 +58,7 @@ export default function App() {
           return next;
         });
 
-        setDateFilter('all');
+        setDateFilter(DEFAULT_DATE_FILTER);
         setFileInputKey((k) => k + 1);
 
         if (result.expensesFound) {
@@ -75,7 +72,7 @@ export default function App() {
             4000
           );
           toast.info(
-            `Expense sheet not found. Sheets in file: ${result.sheetNames.join(', ')}. Add a sheet named "Expense" with Reason, Cash, Gpay columns.`,
+            `Expense sheet not found. Sheets in file: ${result.sheetNames.join(', ')}.`,
             7000
           );
         }
@@ -105,19 +102,26 @@ export default function App() {
     });
   }, [rides, dateFilter, uploadId]);
 
+  const { rows: filteredExpenses, undatedExpensesHidden } = useMemo(
+    () => filterExpensesByDateRange(expenses, dateFilter),
+    [expenses, dateFilter, uploadId]
+  );
+
   const walletStats = useMemo(
     () =>
-      computeWalletStats(daily, rides, {
-        balance: walletMeta.balance,
-        recharge: walletMeta.recharge,
-        fallbackBalance: walletMeta.fallbackBalance,
+      computeWalletStats(filteredDaily, filteredRides, {
+        balance: isActiveFilter(dateFilter)
+          ? getLatestBalanceInRange(filteredDaily, walletMeta.balance)
+          : walletMeta.balance,
+        recharge: isActiveFilter(dateFilter) ? null : walletMeta.recharge,
+        fallbackBalance: isActiveFilter(dateFilter) ? null : walletMeta.fallbackBalance,
       }),
-    [daily, rides, walletMeta, uploadId]
+    [filteredDaily, filteredRides, walletMeta, dateFilter, uploadId]
   );
 
   const stats = useMemo(() => {
     const d = filteredDaily;
-    if (!d.length) return {};
+    if (!d.length) return { workDays: 0 };
     const totalProfit = d.reduce((s, r) => s + r.Profit, 0);
     const totalRevenue = d.reduce((s, r) => s + r.Total, 0);
     const totalOrders = d.reduce((s, r) => s + r.Orders, 0);
@@ -156,30 +160,12 @@ export default function App() {
       bestDay,
       workDays: d.length,
     };
-  }, [filteredDaily, walletStats, uploadId]);
+  }, [filteredDaily, walletStats, uploadId, dateFilter]);
 
-  const chartData = useMemo(() => {
-    const sorted = [...filteredDaily].sort(
-      (a, b) => new Date(a.Date) - new Date(b.Date)
-    );
-    let cumProfit = 0;
-    let cumRevenue = 0;
-    return sorted.map((d, i, arr) => {
-      cumProfit += d.Profit;
-      cumRevenue += d.Total;
-      const window = arr.slice(Math.max(0, i - 2), i + 1);
-      const ma3 = window.reduce((s, x) => s + x.Profit, 0) / window.length;
-      return {
-        ...d,
-        label: d.Date.slice(5).replace('-', '/'),
-        ProfitPerOrder: d.Orders > 0 ? +(d.Profit / d.Orders).toFixed(1) : 0,
-        ProfitPerKm: d.Distance > 0 ? +(d.Profit / d.Distance).toFixed(1) : 0,
-        CumProfit: +cumProfit.toFixed(0),
-        CumRevenue: +cumRevenue.toFixed(0),
-        MA3: +ma3.toFixed(1),
-      };
-    });
-  }, [filteredDaily, uploadId]);
+  const chartData = useMemo(
+    () => buildChartDataFromDaily(filteredDaily),
+    [filteredDaily, uploadId, dateFilter]
+  );
 
   const weekdayData = useMemo(() => {
     const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -202,14 +188,14 @@ export default function App() {
       AvgOrders: b.Days ? +(b.Orders / b.Days).toFixed(1) : 0,
       Days: b.Days,
     }));
-  }, [filteredDaily, uploadId]);
+  }, [filteredDaily, uploadId, dateFilter]);
 
   const paymentPie = useMemo(
     () => [
       { name: 'GPay', value: stats.totalGpay || 0 },
       { name: 'Cash', value: stats.totalCash || 0 },
     ],
-    [stats, uploadId]
+    [stats, dateFilter]
   );
 
   const revenueBreakdown = useMemo(
@@ -218,11 +204,10 @@ export default function App() {
       { name: 'Tips', value: +(stats.totalTips || 0).toFixed(0) },
       { name: 'Incentive', value: +(stats.totalIncentive || 0).toFixed(0) },
     ],
-    [stats, uploadId]
+    [stats, dateFilter]
   );
 
-  const expPie = useMemo(() => buildExpPie(expenses), [expenses, uploadId]);
-  const contentKey = `upload-${uploadId}`;
+  const viewKey = `${uploadId}-${dateFilter.preset}-${dateFilter.from}-${dateFilter.to}`;
 
   return (
     <>
@@ -232,6 +217,7 @@ export default function App() {
           lastUpdated={lastUpdated}
           dateFilter={dateFilter}
           onDateFilter={setDateFilter}
+          dataBounds={dataBounds}
           uploading={uploading}
           onFile={handleFile}
           fileInputKey={fileInputKey}
@@ -240,14 +226,15 @@ export default function App() {
 
         <Tabs tab={tab} onTab={setTab} />
 
-        <div key={contentKey} className="tab-content-enter">
+        <div key={viewKey} className="tab-content-enter">
           {tab === 'overview' && (
             <OverviewTab
               stats={stats}
-              chartData={chartData}
+              filteredDaily={filteredDaily}
               paymentPie={paymentPie}
               revenueBreakdown={revenueBreakdown}
               weekdayData={weekdayData}
+              dateFilter={dateFilter}
             />
           )}
           {tab === 'daily' && (
@@ -255,6 +242,7 @@ export default function App() {
               filteredDaily={filteredDaily}
               chartData={chartData}
               walletBalance={walletStats.balance ?? 0}
+              dateFilter={dateFilter}
             />
           )}
           {tab === 'rides' && (
@@ -263,16 +251,17 @@ export default function App() {
               totalOrders={stats.totalOrders || 0}
               allRidesCount={rides.length}
               walletBalance={walletStats.balance ?? 0}
+              dateFilter={dateFilter}
             />
           )}
           {tab === 'expenses' && (
             <ExpensesTab
-              key={`expenses-${uploadId}`}
               stats={stats}
-              expPie={expPie}
-              expenses={expenses}
+              expenses={filteredExpenses}
               walletRecharge={walletStats.recharge}
               uploadId={uploadId}
+              dateFilter={dateFilter}
+              undatedExpensesHidden={undatedExpensesHidden}
             />
           )}
         </div>
@@ -285,4 +274,13 @@ export default function App() {
       </div>
     </>
   );
+}
+
+function getLatestBalanceInRange(filteredDaily, metaBalance) {
+  if (!filteredDaily?.length) return metaBalance ?? 0;
+  const withBal = [...filteredDaily]
+    .filter((d) => d.BalanceWallet !== undefined)
+    .sort((a, b) => new Date(b.Date) - new Date(a.Date));
+  if (withBal.length) return +withBal[0].BalanceWallet;
+  return metaBalance ?? 0;
 }
