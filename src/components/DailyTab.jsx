@@ -22,6 +22,7 @@ const TD = 'px-2 sm:px-3.5 py-2 sm:py-2.5 text-right whitespace-nowrap';
 export default function DailyTab({ filteredDaily, chartData, walletBalance = 0 }) {
   const sum = (key) => filteredDaily.reduce((s, r) => s + r[key], 0);
   const totalProfit = sum('Profit');
+  const chartKey = `${filteredDaily.length}-${totalProfit}`;
 
   return (
     <div className="space-y-4">
@@ -38,7 +39,7 @@ export default function DailyTab({ filteredDaily, chartData, walletBalance = 0 }
         </div>
         <div className="h-[220px] w-full sm:h-[260px] md:h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+            <BarChart key={`daily-bar-${chartKey}`} data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e2740" vertical={false} />
               <XAxis
                 dataKey="label"

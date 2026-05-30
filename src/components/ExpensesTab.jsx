@@ -13,6 +13,7 @@ import { walletColor } from '../utils/wallet.js';
 
 export default function ExpensesTab({ stats, expPie, expenses = [], walletRecharge = 0 }) {
   const walletBalance = stats.walletBalance ?? 0;
+  const chartKey = `${expenses.length}-${stats.totalProfit || 0}-${walletRecharge}`;
 
   const summaryCards = [
     { label: 'Total Revenue', value: stats.totalRevenue, color: '#3b82f6', isWallet: false },
@@ -34,7 +35,7 @@ export default function ExpensesTab({ stats, expPie, expenses = [], walletRechar
           </div>
           <div className="h-[200px] w-full sm:h-[220px]">
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart key={`exp-pie-${chartKey}`}>
                 <Pie
                   data={expPie}
                   cx="50%"

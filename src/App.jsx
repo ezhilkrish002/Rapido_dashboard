@@ -8,32 +8,13 @@ import RidesTab from './components/RidesTab.jsx';
 import ExpensesTab from './components/ExpensesTab.jsx';
 import { parseExcelFile } from './utils/parseExcel.js';
 import { filterByDateRange } from './utils/dateFilter.js';
-import { normalizeRide } from './utils/normalize.js';
 import { computeWalletStats } from './utils/wallet.js';
-import { loadStoredData, saveStoredData } from './utils/storage.js';
-import { useToast } from './context/ToastContext.jsx';
 import {
-  INITIAL_DAILY,
-  INITIAL_RIDES,
-  EXPENSES,
-  WALLET_META,
-} from './data/initialData.js';
-
-function initFromStorage() {
-  const stored = loadStoredData();
-  if (!stored) return null;
-  return {
-    daily: stored.daily,
-    rides: stored.rides.map((r, i) => normalizeRide(r, i)),
-    expenses: stored.expenses?.length ? stored.expenses : EXPENSES,
-    walletMeta: stored.walletMeta ?? {
-      balance: WALLET_META.balance,
-      recharge: WALLET_META.recharge,
-      fallbackBalance: WALLET_META.balance,
-    },
-    lastUpdated: stored.lastUpdated || 'Saved data',
-  };
-}
+  loadDashboardFromStorage,
+  buildDashboardFromExcel,
+  persistDashboard,
+} from './utils/dashboardState.js';
+import { useToast } from './context/ToastContext.jsx';
 
 function buildExpPie(expenses) {
   const byReason = {};
@@ -49,25 +30,13 @@ function buildExpPie(expenses) {
 
 export default function App() {
   const { toast } = useToast();
-  const saved = useMemo(() => initFromStorage(), []);
-
-  const [daily, setDaily] = useState(saved?.daily ?? INITIAL_DAILY);
-  const [rides, setRides] = useState(
-    () => saved?.rides ?? INITIAL_RIDES.map((r, i) => normalizeRide(r, i))
-  );
-  const [expenses, setExpenses] = useState(saved?.expenses ?? EXPENSES);
-  const [walletMeta, setWalletMeta] = useState(
-    saved?.walletMeta ?? {
-      balance: WALLET_META.balance,
-      recharge: WALLET_META.recharge,
-      fallbackBalance: WALLET_META.balance,
-    }
-  );
+  const [dashboard, setDashboard] = useState(loadDashboardFromStorage);
   const [tab, setTab] = useState('overview');
   const [dateFilter, setDateFilter] = useState('all');
   const [uploading, setUploading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(saved?.lastUpdated ?? 'Built-in data');
-  const [dataVersion, setDataVersion] = useState(0);
+  const [fileInputKey, setFileInputKey] = useState(0);
+
+  const { daily, rides, expenses, walletMeta, lastUpdated, uploadId } = dashboard;
 
   const handleFile = useCallback(
     async (e) => {
@@ -77,12 +46,8 @@ export default function App() {
       setUploading(true);
       const loadingId = toast.loading(`Reading ${f.name}…`);
 
-      // Let the loading toast paint before heavy Excel parsing blocks the main thread
-      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-
       try {
         const result = await parseExcelFile(f);
-
         toast.dismiss(loadingId);
 
         if (!result.ok) {
@@ -90,34 +55,20 @@ export default function App() {
           return;
         }
 
-        setDaily(result.daily);
-        const normalizedRides = result.rides.map((r, i) => normalizeRide(r, i));
-        setRides(normalizedRides);
-        const nextExpenses = result.expenses?.length ? result.expenses : expenses;
-        if (result.expenses?.length) {
-          setExpenses(result.expenses);
-        }
-        const nextWalletMeta = {
-          balance: result.walletMeta?.balance ?? null,
-          recharge: result.walletMeta?.recharge ?? null,
-          fallbackBalance: null,
-        };
-        setWalletMeta(nextWalletMeta);
-        setDateFilter('all');
-        setDataVersion((v) => v + 1);
-        const updatedAt = new Date().toLocaleString();
-        setLastUpdated(updatedAt);
-
-        saveStoredData({
-          daily: result.daily,
-          rides: normalizedRides,
-          expenses: nextExpenses,
-          walletMeta: nextWalletMeta,
-          lastUpdated: updatedAt,
+        setDashboard((prev) => {
+          const next = buildDashboardFromExcel(result, prev);
+          persistDashboard(next);
+          return next;
         });
 
+        setDateFilter('all');
+        setFileInputKey((k) => k + 1);
+
+        const expenseCount =
+          result.expenses !== null ? result.expenses.length : '—';
+
         toast.success(
-          `Data updated! ${result.daily.length} days, ${result.rides.length} rides loaded from ${f.name}.`,
+          `Updated! ${result.daily.length} days · ${result.rides.length} rides · ${expenseCount} expenses`,
           5000
         );
       } catch (err) {
@@ -126,15 +77,14 @@ export default function App() {
         toast.error(err?.message || 'Unexpected error while uploading file.');
       } finally {
         setUploading(false);
-        e.target.value = '';
       }
     },
-    [toast, expenses]
+    [toast]
   );
 
   const filteredDaily = useMemo(
     () => filterByDateRange(daily, dateFilter),
-    [daily, dateFilter]
+    [daily, dateFilter, uploadId]
   );
 
   const filteredRides = useMemo(() => {
@@ -145,7 +95,7 @@ export default function App() {
       if (db - da !== 0) return db - da;
       return b.SNo - a.SNo;
     });
-  }, [rides, dateFilter]);
+  }, [rides, dateFilter, uploadId]);
 
   const walletStats = useMemo(
     () =>
@@ -154,7 +104,7 @@ export default function App() {
         recharge: walletMeta.recharge,
         fallbackBalance: walletMeta.fallbackBalance,
       }),
-    [daily, rides, walletMeta]
+    [daily, rides, walletMeta, uploadId]
   );
 
   const stats = useMemo(() => {
@@ -198,9 +148,7 @@ export default function App() {
       bestDay,
       workDays: d.length,
     };
-  }, [filteredDaily, walletStats]);
-
-  const walletRecharge = walletStats.recharge;
+  }, [filteredDaily, walletStats, uploadId]);
 
   const chartData = useMemo(() => {
     const sorted = [...filteredDaily].sort(
@@ -223,7 +171,7 @@ export default function App() {
         MA3: +ma3.toFixed(1),
       };
     });
-  }, [filteredDaily]);
+  }, [filteredDaily, uploadId]);
 
   const weekdayData = useMemo(() => {
     const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -246,14 +194,14 @@ export default function App() {
       AvgOrders: b.Days ? +(b.Orders / b.Days).toFixed(1) : 0,
       Days: b.Days,
     }));
-  }, [filteredDaily]);
+  }, [filteredDaily, uploadId]);
 
   const paymentPie = useMemo(
     () => [
       { name: 'GPay', value: stats.totalGpay || 0 },
       { name: 'Cash', value: stats.totalCash || 0 },
     ],
-    [stats]
+    [stats, uploadId]
   );
 
   const revenueBreakdown = useMemo(
@@ -262,10 +210,11 @@ export default function App() {
       { name: 'Tips', value: +(stats.totalTips || 0).toFixed(0) },
       { name: 'Incentive', value: +(stats.totalIncentive || 0).toFixed(0) },
     ],
-    [stats]
+    [stats, uploadId]
   );
 
-  const expPie = useMemo(() => buildExpPie(expenses), [expenses]);
+  const expPie = useMemo(() => buildExpPie(expenses), [expenses, uploadId]);
+  const contentKey = `upload-${uploadId}`;
 
   return (
     <>
@@ -277,12 +226,13 @@ export default function App() {
           onDateFilter={setDateFilter}
           uploading={uploading}
           onFile={handleFile}
+          fileInputKey={fileInputKey}
           walletBalance={walletStats.balance ?? 0}
         />
 
         <Tabs tab={tab} onTab={setTab} />
 
-        <div key={`${tab}-${dataVersion}`} className="tab-content-enter">
+        <div key={contentKey} className="tab-content-enter">
           {tab === 'overview' && (
             <OverviewTab
               stats={stats}
@@ -312,7 +262,7 @@ export default function App() {
               stats={stats}
               expPie={expPie}
               expenses={expenses}
-              walletRecharge={walletRecharge}
+              walletRecharge={walletStats.recharge}
             />
           )}
         </div>

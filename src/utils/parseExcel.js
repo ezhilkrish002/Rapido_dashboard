@@ -33,14 +33,19 @@ function pickByContains(idx, fragment) {
 
 function toNum(v) {
   if (v === undefined || v === null || v === '') return 0;
-  if (typeof v === 'number') return v;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : 0;
   const s = String(v).replace(/[₹,\s]/g, '');
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : 0;
 }
 
 function toDate(v) {
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (v instanceof Date) {
+    const y = v.getFullYear();
+    const m = String(v.getMonth() + 1).padStart(2, '0');
+    const d = String(v.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
   if (typeof v === 'number') {
     const d = SSF?.parse_date_code?.(v);
     if (d) {
@@ -52,11 +57,71 @@ function toDate(v) {
   if (typeof v === 'string') {
     const trimmed = v.trim();
     if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) return trimmed.slice(0, 10);
+    const m = trimmed.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (m) {
+      const year = m[3].length === 2 ? `20${m[3]}` : m[3];
+      return `${year}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    }
     const parsed = new Date(trimmed);
-    if (!Number.isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+    if (!Number.isNaN(parsed.getTime())) {
+      const y = parsed.getFullYear();
+      const mo = String(parsed.getMonth() + 1).padStart(2, '0');
+      const da = String(parsed.getDate()).padStart(2, '0');
+      return `${y}-${mo}-${da}`;
+    }
     return trimmed.slice(0, 10);
   }
   return '';
+}
+
+function rowLabels(row) {
+  return (row || []).map((c) => canon(c));
+}
+
+function detectHeaderRow(matrix, kind) {
+  const rules = {
+    daily: (labels) =>
+      labels.some((l) => l.includes('date')) &&
+      (labels.some((l) => l.includes('profit') || l.includes('orders') || l.includes('commission'))),
+    rides: (labels) =>
+      labels.some((l) => l.includes('date')) &&
+      (labels.some((l) => l.includes('amount') || l.includes('commission') || l.includes('total'))),
+    expenses: (labels) =>
+      labels.some((l) => l.includes('reason') || l.includes('particular') || l.includes('description')) &&
+      (labels.some((l) => l.includes('cash') || l.includes('gpay'))),
+  };
+
+  const test = rules[kind] || rules.daily;
+  const idx = matrix.findIndex((row) => test(rowLabels(row)));
+  return idx >= 0 ? idx : 0;
+}
+
+/** Read sheet rows as objects even when title/blank rows appear before headers. */
+function readSheetAsObjects(sheet, kind = 'daily') {
+  if (!sheet?.['!ref']) return [];
+
+  const matrix = utils.sheet_to_json(sheet, { header: 1, defval: '', raw: false });
+  if (!matrix.length) return [];
+
+  const headerIdx = detectHeaderRow(matrix, kind);
+  const headers = matrix[headerIdx].map((h, i) => {
+    const label = String(h ?? '').trim();
+    return label || `Column${i + 1}`;
+  });
+
+  const rows = [];
+  for (let r = headerIdx + 1; r < matrix.length; r++) {
+    const line = matrix[r];
+    if (!line?.some((c) => c !== '' && c != null)) continue;
+
+    const obj = {};
+    headers.forEach((h, i) => {
+      obj[h] = line[i] ?? '';
+    });
+    rows.push(obj);
+  }
+
+  return rows;
 }
 
 function isSummaryRow(idx) {
@@ -158,27 +223,24 @@ function parseRideRow(idx, i) {
       'Cash/Gpay', 'Cash / Gpay', 'PayMode', 'Mode', 'Payment', 'Type', 'Pay Mode',
     ]) ?? 'Gpay';
 
-  return normalizeRide(
-    {
-      SNo: toNum(pick(idx, ['S.No', 'SNo', '#'])) || i + 1,
-      Date: toDate(pick(idx, ['Date'])),
-      Detection: toNum(pick(idx, ['Detection', 'Detect', 'Deduction'])),
-      Commission: toNum(pick(idx, ['Commission', 'Commision'])),
-      Amount: amount,
-      Tips: tips,
-      Total: total,
-      PayMode: normalizePayMode(payRaw),
-      Wallet: toNum(pick(idx, ['Wallet'])),
-      Petrol: toNum(pick(idx, ['Petrol', 'Fuel'])),
-      Incentive: incentive,
-    },
-    i
-  );
+  return {
+    SNo: toNum(pick(idx, ['S.No', 'SNo', '#'])) || i + 1,
+    Date: toDate(pick(idx, ['Date'])),
+    Detection: toNum(pick(idx, ['Detection', 'Detect', 'Deduction'])),
+    Commission: toNum(pick(idx, ['Commission', 'Commision'])),
+    Amount: amount,
+    Tips: tips,
+    Total: total,
+    PayMode: normalizePayMode(payRaw),
+    Wallet: toNum(pick(idx, ['Wallet'])),
+    Petrol: toNum(pick(idx, ['Petrol', 'Fuel'])),
+    Incentive: incentive,
+  };
 }
 
 function parseDailyRow(idx) {
   const balanceRaw =
-    pick(idx, ['Balance Wallet', 'Bal Wallet', 'Wallet Balance', 'Wallet Bal']) ??
+    pick(idx, ['Balance Wallet', 'Bal Wallet', 'Wallet Balance', 'Wallet Bal', 'Bal']) ??
     pickByContains(idx, 'balancewallet');
 
   return {
@@ -201,7 +263,7 @@ function parseDailyRow(idx) {
     Detection: toNum(pick(idx, ['Detection', 'Detect', 'Deduction'])),
     Petrol: toNum(pick(idx, ['Petrol', 'Fuel'])),
     Wallet: toNum(pick(idx, ['Wallet'])),
-    ...(balanceRaw !== undefined ? { BalanceWallet: toNum(balanceRaw) } : {}),
+    ...(balanceRaw !== undefined && balanceRaw !== '' ? { BalanceWallet: toNum(balanceRaw) } : {}),
     Profit: toNum(pick(idx, ['Profit', 'Net', 'NetProfit'])),
     Orders: toNum(pick(idx, ['Orders', 'Order', 'Rides', 'Trips'])),
   };
@@ -215,19 +277,27 @@ function parseExpenseRow(idx) {
   };
 }
 
-function findSheet(wb, patterns, fallback) {
-  const name = wb.SheetNames.find((n) => patterns.some((p) => p.test(n)));
-  return name ? wb.Sheets[name] : wb.Sheets[fallback];
+function findSheet(wb, exactNames, patterns) {
+  for (const exact of exactNames) {
+    const needle = canon(exact);
+    const match = wb.SheetNames.find((n) => canon(n) === needle);
+    if (match) return wb.Sheets[match];
+  }
+  const fuzzy = wb.SheetNames.find((n) => patterns.some((p) => p.test(n)));
+  return fuzzy ? wb.Sheets[fuzzy] : null;
+}
+
+function cloneData(data) {
+  return JSON.parse(JSON.stringify(data));
 }
 
 function parseWorkbook(buffer) {
-  const wb = read(buffer, { type: 'array', cellDates: true });
+  const bytes = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
+  const wb = read(bytes, { type: 'array', cellDates: true });
   const sheetNames = wb.SheetNames;
 
-  const dailySheet = findSheet(wb, [/daily/i], 'Daily');
-  const rawDaily = dailySheet
-    ? utils.sheet_to_json(dailySheet, { defval: 0, raw: false })
-    : [];
+  const dailySheet = findSheet(wb, ['Daily'], [/daily/i]);
+  const rawDaily = dailySheet ? readSheetAsObjects(dailySheet, 'daily') : [];
 
   const daily = rawDaily
     .map(indexRow)
@@ -235,10 +305,8 @@ function parseWorkbook(buffer) {
     .map(parseDailyRow)
     .filter((r) => r.Date);
 
-  const ridesSheet = findSheet(wb, [/rapido/i, /ride/i], 'rapido');
-  const rawRides = ridesSheet
-    ? utils.sheet_to_json(ridesSheet, { defval: 0, raw: false })
-    : [];
+  const ridesSheet = findSheet(wb, ['rapido', 'Rapido'], [/rapido/i]);
+  const rawRides = ridesSheet ? readSheetAsObjects(ridesSheet, 'rides') : [];
 
   const rides = rawRides
     .map(indexRow)
@@ -250,12 +318,12 @@ function parseWorkbook(buffer) {
       if (da - db !== 0) return da - db;
       return a.SNo - b.SNo;
     })
-    .map((r, i) => ({ ...r, SNo: i + 1 }));
+    .map((r, i) => normalizeRide({ ...r, SNo: i + 1 }, i));
 
-  const expenseSheet = findSheet(wb, [/expense/i], null);
+  const expenseSheet = findSheet(wb, ['Expense', 'Expenses', 'Exp'], [/expense/i, /^exp$/i]);
   let expenses = null;
   if (expenseSheet) {
-    const rawExp = utils.sheet_to_json(expenseSheet, { defval: 0, raw: false });
+    const rawExp = readSheetAsObjects(expenseSheet, 'expenses');
     expenses = rawExp
       .map(indexRow)
       .filter(isExpenseRow)
@@ -265,12 +333,15 @@ function parseWorkbook(buffer) {
 
   const walletMeta = parseWalletMetaFromWorkbook(wb);
 
-  return { daily, rides, expenses, walletMeta, sheetNames };
+  return {
+    daily: cloneData(daily),
+    rides: cloneData(rides),
+    expenses: expenses ? cloneData(expenses) : null,
+    walletMeta,
+    sheetNames,
+  };
 }
 
-/**
- * Parse an Excel workbook file. Returns a Promise (works reliably in production builds).
- */
 export function parseExcelFile(file) {
   return new Promise((resolve) => {
     if (!file) {
@@ -305,10 +376,6 @@ export function parseExcelFile(file) {
             ok: false,
             error: `No daily data found. Sheets in file: ${sheetNames.join(', ') || 'none'}. Expected a "Daily" sheet with Date and earnings columns.`,
             sheetNames,
-            daily: [],
-            rides: [],
-            expenses: null,
-            walletMeta: {},
           });
           return;
         }
@@ -326,19 +393,10 @@ export function parseExcelFile(file) {
         resolve({
           ok: false,
           error: err?.message || 'Failed to parse Excel file.',
-          daily: [],
-          rides: [],
-          expenses: null,
-          walletMeta: {},
         });
       }
     };
 
     reader.readAsArrayBuffer(file);
   });
-}
-
-/** @deprecated Use parseExcelFile — kept for compatibility */
-export function parseExcel(file, onDone) {
-  parseExcelFile(file).then(onDone);
 }

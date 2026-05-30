@@ -8,6 +8,7 @@ export default function Header({
   onDateFilter,
   uploading,
   onFile,
+  fileInputKey = 0,
   walletBalance = 0,
 }) {
   return (
@@ -60,8 +61,9 @@ export default function Header({
         >
           {uploading ? '⏳ Loading...' : '📁 Upload Excel'}
           <input
+            key={fileInputKey}
             type="file"
-            accept=".xlsx,.xls"
+            accept=".xlsx,.xls,.xlsm"
             className="hidden"
             onChange={onFile}
           />

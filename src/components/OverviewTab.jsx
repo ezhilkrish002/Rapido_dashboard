@@ -39,14 +39,18 @@ function Panel({ title, children, className = '' }) {
 
 // Chart wrapper with breakpoint-driven height. Recharts ResponsiveContainer
 // at 100%/100% fills the wrapper, so we control the height with Tailwind.
-function ChartBox({ size = 'md', children }) {
+function ChartBox({ size = 'md', chartKey, children }) {
   const sizes = {
     sm: 'h-[180px] sm:h-[200px] md:h-[220px]',
     md: 'h-[200px] sm:h-[220px] md:h-[240px]',
     lg: 'h-[220px] sm:h-[260px] md:h-[280px]',
     pie: 'h-[160px] sm:h-[180px]',
   };
-  return <div className={`w-full ${sizes[size]}`}>{children}</div>;
+  return (
+    <div key={chartKey} className={`w-full ${sizes[size]}`}>
+      {children}
+    </div>
+  );
 }
 
 const axisX = {
@@ -73,9 +77,11 @@ export default function OverviewTab({
   revenueBreakdown,
   weekdayData,
 }) {
+  const chartKey = `${chartData.length}-${stats.totalProfit || 0}-${stats.totalRevenue || 0}`;
+
   return (
     <div className="space-y-4 sm:space-y-5">
-      <ProfitHero stats={stats} />
+      <ProfitHero key={chartKey} stats={stats} />
 
       <WalletBalanceBanner balance={stats.walletBalance ?? 0} compact />
 
@@ -156,9 +162,10 @@ export default function OverviewTab({
       {/* ── ROW 1: TREND + PAYMENT SPLIT ──────────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel title="📈 Profit & Revenue Trend" className="lg:col-span-2">
-          <ChartBox size="md">
+          <ChartBox size="md" chartKey={`trend-${chartKey}`}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
+                key={`area-trend-${chartKey}`}
                 data={chartData}
                 margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
               >
@@ -198,9 +205,9 @@ export default function OverviewTab({
         </Panel>
 
         <Panel title="💳 Payment Split">
-          <ChartBox size="pie">
+          <ChartBox size="pie" chartKey={`pay-${chartKey}`}>
             <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
+              <PieChart key={`pie-pay-${chartKey}`}>
                 <Pie
                   data={paymentPie}
                   cx="50%"
@@ -245,9 +252,10 @@ export default function OverviewTab({
 
       {/* ── ROW 2: PERFORMANCE TREND (FULL WIDTH) ─────────────────────── */}
       <Panel title="🚀 Performance Trend (Profit vs 3-Day Moving Average)">
-        <ChartBox size="lg">
+        <ChartBox size="lg" chartKey={`perf-${chartKey}`}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
+              key={`perf-${chartKey}`}
               data={chartData}
               margin={{ top: 5, right: 10, left: 0, bottom: 0 }}
             >

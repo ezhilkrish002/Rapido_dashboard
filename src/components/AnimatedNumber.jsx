@@ -7,6 +7,9 @@ export default function AnimatedNumber({ value, formatter = (v) => String(v) }) 
   useEffect(() => {
     const from = prev.current;
     const to = value;
+    prev.current = to;
+    setDisplay(to);
+
     if (from === to) return;
 
     const duration = 900;
@@ -18,7 +21,6 @@ export default function AnimatedNumber({ value, formatter = (v) => String(v) }) 
       const eased = 1 - Math.pow(1 - t, 3);
       setDisplay(from + (to - from) * eased);
       if (t < 1) frame = requestAnimationFrame(tick);
-      else prev.current = to;
     };
 
     frame = requestAnimationFrame(tick);

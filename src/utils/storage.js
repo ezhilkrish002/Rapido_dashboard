@@ -12,11 +12,11 @@ export function loadStoredData() {
   }
 }
 
-export function saveStoredData({ daily, rides, expenses, walletMeta, lastUpdated }) {
+export function saveStoredData({ daily, rides, expenses, walletMeta, lastUpdated, uploadId }) {
   try {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ daily, rides, expenses, walletMeta, lastUpdated })
+      JSON.stringify({ daily, rides, expenses, walletMeta, lastUpdated, uploadId })
     );
   } catch (err) {
     console.warn('Could not save dashboard data to localStorage:', err);
