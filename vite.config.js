@@ -8,4 +8,12 @@ export default defineConfig({
     port: 5173,
     open: true,
   },
+  optimizeDeps: {
+    include: ['xlsx'],
+  },
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+  },
 });

@@ -6,12 +6,12 @@ import OverviewTab from './components/OverviewTab.jsx';
 import DailyTab from './components/DailyTab.jsx';
 import RidesTab from './components/RidesTab.jsx';
 import ExpensesTab from './components/ExpensesTab.jsx';
-import { parseExcel } from './utils/parseExcel.js';
+import { parseExcelFile } from './utils/parseExcel.js';
 import { filterByDateRange } from './utils/dateFilter.js';
 import { normalizeRide } from './utils/normalize.js';
-import {
-  computeWalletStats,
-} from './utils/wallet.js';
+import { computeWalletStats } from './utils/wallet.js';
+import { loadStoredData, saveStoredData } from './utils/storage.js';
+import { useToast } from './context/ToastContext.jsx';
 import {
   INITIAL_DAILY,
   INITIAL_RIDES,
@@ -19,40 +19,118 @@ import {
   WALLET_META,
 } from './data/initialData.js';
 
-export default function App() {
-  const [daily, setDaily] = useState(INITIAL_DAILY);
-  const [rides, setRides] = useState(() =>
-    INITIAL_RIDES.map((r, i) => normalizeRide(r, i))
-  );
-  const [walletMeta, setWalletMeta] = useState({
-    balance: WALLET_META.balance,
-    recharge: WALLET_META.recharge,
-    fallbackBalance: WALLET_META.balance,
+function initFromStorage() {
+  const stored = loadStoredData();
+  if (!stored) return null;
+  return {
+    daily: stored.daily,
+    rides: stored.rides.map((r, i) => normalizeRide(r, i)),
+    expenses: stored.expenses?.length ? stored.expenses : EXPENSES,
+    walletMeta: stored.walletMeta ?? {
+      balance: WALLET_META.balance,
+      recharge: WALLET_META.recharge,
+      fallbackBalance: WALLET_META.balance,
+    },
+    lastUpdated: stored.lastUpdated || 'Saved data',
+  };
+}
+
+function buildExpPie(expenses) {
+  const byReason = {};
+  expenses.forEach((e) => {
+    const total = Math.abs(e.Cash) + Math.abs(e.Gpay);
+    byReason[e.Reason] = (byReason[e.Reason] || 0) + total;
   });
+  return Object.entries(byReason)
+    .map(([k, v]) => ({ name: k, value: +v.toFixed(0) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 7);
+}
+
+export default function App() {
+  const { toast } = useToast();
+  const saved = useMemo(() => initFromStorage(), []);
+
+  const [daily, setDaily] = useState(saved?.daily ?? INITIAL_DAILY);
+  const [rides, setRides] = useState(
+    () => saved?.rides ?? INITIAL_RIDES.map((r, i) => normalizeRide(r, i))
+  );
+  const [expenses, setExpenses] = useState(saved?.expenses ?? EXPENSES);
+  const [walletMeta, setWalletMeta] = useState(
+    saved?.walletMeta ?? {
+      balance: WALLET_META.balance,
+      recharge: WALLET_META.recharge,
+      fallbackBalance: WALLET_META.balance,
+    }
+  );
   const [tab, setTab] = useState('overview');
   const [dateFilter, setDateFilter] = useState('all');
   const [uploading, setUploading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState('Built-in data');
+  const [lastUpdated, setLastUpdated] = useState(saved?.lastUpdated ?? 'Built-in data');
+  const [dataVersion, setDataVersion] = useState(0);
 
-  const handleFile = useCallback((e) => {
-    const f = e.target.files[0];
-    if (!f) return;
-    setUploading(true);
-    parseExcel(f, ({ daily: d, rides: r, walletMeta: wm, ok }) => {
-      if (ok && d.length > 0) {
-        setDaily(d);
-        setRides(r);
-        setWalletMeta({
-          balance: wm?.balance ?? null,
-          recharge: wm?.recharge ?? null,
+  const handleFile = useCallback(
+    async (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+
+      setUploading(true);
+      const loadingId = toast.loading(`Reading ${f.name}…`);
+
+      // Let the loading toast paint before heavy Excel parsing blocks the main thread
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      try {
+        const result = await parseExcelFile(f);
+
+        toast.dismiss(loadingId);
+
+        if (!result.ok) {
+          toast.error(result.error || 'Failed to parse Excel file.');
+          return;
+        }
+
+        setDaily(result.daily);
+        const normalizedRides = result.rides.map((r, i) => normalizeRide(r, i));
+        setRides(normalizedRides);
+        const nextExpenses = result.expenses?.length ? result.expenses : expenses;
+        if (result.expenses?.length) {
+          setExpenses(result.expenses);
+        }
+        const nextWalletMeta = {
+          balance: result.walletMeta?.balance ?? null,
+          recharge: result.walletMeta?.recharge ?? null,
           fallbackBalance: null,
+        };
+        setWalletMeta(nextWalletMeta);
+        setDateFilter('all');
+        setDataVersion((v) => v + 1);
+        const updatedAt = new Date().toLocaleString();
+        setLastUpdated(updatedAt);
+
+        saveStoredData({
+          daily: result.daily,
+          rides: normalizedRides,
+          expenses: nextExpenses,
+          walletMeta: nextWalletMeta,
+          lastUpdated: updatedAt,
         });
-        setLastUpdated(new Date().toLocaleTimeString());
+
+        toast.success(
+          `Data updated! ${result.daily.length} days, ${result.rides.length} rides loaded from ${f.name}.`,
+          5000
+        );
+      } catch (err) {
+        toast.dismiss(loadingId);
+        console.error('Upload failed:', err);
+        toast.error(err?.message || 'Unexpected error while uploading file.');
+      } finally {
+        setUploading(false);
+        e.target.value = '';
       }
-      setUploading(false);
-      e.target.value = '';
-    });
-  }, []);
+    },
+    [toast, expenses]
+  );
 
   const filteredDaily = useMemo(
     () => filterByDateRange(daily, dateFilter),
@@ -187,17 +265,7 @@ export default function App() {
     [stats]
   );
 
-  const expPie = useMemo(() => {
-    const byReason = {};
-    EXPENSES.forEach((e) => {
-      const total = Math.abs(e.Cash) + Math.abs(e.Gpay);
-      byReason[e.Reason] = (byReason[e.Reason] || 0) + total;
-    });
-    return Object.entries(byReason)
-      .map(([k, v]) => ({ name: k, value: +v.toFixed(0) }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 7);
-  }, []);
+  const expPie = useMemo(() => buildExpPie(expenses), [expenses]);
 
   return (
     <>
@@ -214,7 +282,7 @@ export default function App() {
 
         <Tabs tab={tab} onTab={setTab} />
 
-        <div key={tab} className="tab-content-enter">
+        <div key={`${tab}-${dataVersion}`} className="tab-content-enter">
           {tab === 'overview' && (
             <OverviewTab
               stats={stats}
@@ -243,6 +311,7 @@ export default function App() {
             <ExpensesTab
               stats={stats}
               expPie={expPie}
+              expenses={expenses}
               walletRecharge={walletRecharge}
             />
           )}

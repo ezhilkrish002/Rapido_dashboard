@@ -264,6 +264,14 @@
   background: rgba(244, 63, 94, 0.12);
 }
 
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(100%) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+.toast-enter {
+  animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 /* ── Tab content transition ──────────────────────────────────────────── */
 .tab-content-enter {
   animation: fade-in-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;

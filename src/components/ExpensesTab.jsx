@@ -8,10 +8,10 @@ import {
 import WalletBalanceBanner from './WalletBalanceBanner.jsx';
 import WalletValue from './WalletValue.jsx';
 import { fmt } from '../utils/format.js';
-import { EXPENSES, CHART_COLORS } from '../data/initialData.js';
+import { CHART_COLORS } from '../data/initialData.js';
 import { walletColor } from '../utils/wallet.js';
 
-export default function ExpensesTab({ stats, expPie, walletRecharge = 0 }) {
+export default function ExpensesTab({ stats, expPie, expenses = [], walletRecharge = 0 }) {
   const walletBalance = stats.walletBalance ?? 0;
 
   const summaryCards = [
@@ -100,7 +100,7 @@ export default function ExpensesTab({ stats, expPie, walletRecharge = 0 }) {
                 </tr>
               </thead>
               <tbody>
-                {EXPENSES.map((e, i) => (
+                {expenses.map((e, i) => (
                   <tr
                     key={i}
                     className={[
