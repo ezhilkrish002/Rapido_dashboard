@@ -31,6 +31,7 @@ import {
   buildChartDataFromDaily,
 } from '../utils/dateFilter.js';
 import WalletBalanceBanner from './WalletBalanceBanner.jsx';
+import { ProfitRangePanel } from './ProfitRangeChart.jsx';
 
 function Panel({ title, children, className = '' }) {
   return (
@@ -138,10 +139,15 @@ export default function OverviewTab({
   const [chartPeriod, setChartPeriod] = useState('all');
   const chartsSectionRef = useRef(null);
 
-  const chartData = useMemo(() => {
-    const periodRows = filterChartPeriod(filteredDaily, chartPeriod);
-    return buildChartDataFromDaily(periodRows);
-  }, [filteredDaily, chartPeriod, dateFilter]);
+  const periodDaily = useMemo(
+    () => filterChartPeriod(filteredDaily, chartPeriod),
+    [filteredDaily, chartPeriod, dateFilter]
+  );
+
+  const chartData = useMemo(
+    () => buildChartDataFromDaily(periodDaily),
+    [periodDaily]
+  );
 
   const chartKey = `${dateFilter?.preset}-${chartPeriod}-${chartData.length}-${stats.totalProfit || 0}`;
   const incentiveDays = chartData.filter((d) => d.HasIncentive);
@@ -452,6 +458,8 @@ export default function OverviewTab({
           </div>
         </Panel>
         </div>
+
+        <ProfitRangePanel filteredDaily={periodDaily} chartKey={chartKey} />
 
         {/* ── ROW 3: ORDERS + REVENUE BREAKDOWN ─────────────────────────── */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

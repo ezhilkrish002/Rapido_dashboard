@@ -1,3 +1,5 @@
+import { resolveDailyPetrol } from './petrolIntervals.js';
+
 /** Parse many date formats as local midnight. */
 export function parseLocalDate(value) {
   if (!value) return null;
@@ -181,9 +183,11 @@ export function buildChartDataFromDaily(filteredDaily) {
     cumProfit += d.Profit;
     cumRevenue += d.Total;
     const incentive = +(d.Incentive || 0);
+    const dailyPetrol = resolveDailyPetrol(d);
     return {
       ...d,
       label: d.Date.slice(5).replace('-', '/'),
+      DailyPetrol: +dailyPetrol.toFixed(0),
       ProfitPerOrder: d.Orders > 0 ? +(d.Profit / d.Orders).toFixed(1) : 0,
       ProfitPerKm: d.Distance > 0 ? +(d.Profit / d.Distance).toFixed(1) : 0,
       CumProfit: +cumProfit.toFixed(0),

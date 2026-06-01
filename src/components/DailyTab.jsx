@@ -1,18 +1,8 @@
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from 'recharts';
-import CustomTooltip from './CustomTooltip.jsx';
 import WalletBalanceBanner from './WalletBalanceBanner.jsx';
 import WalletValue from './WalletValue.jsx';
+import { DailyProfitPetrolPanel, ProfitRangePanel } from './ProfitRangeChart.jsx';
 import { fmt } from '../utils/format.js';
-import { profitCellClass, profitBadgeClass } from '../utils/profit.js';
+import { profitCellClass } from '../utils/profit.js';
 import { walletSignClass } from '../utils/wallet.js';
 import { dateFilterLabel, isActiveFilter } from '../utils/dateFilter.js';
 
@@ -34,44 +24,13 @@ export default function DailyTab({ filteredDaily, chartData, walletBalance = 0, 
       )}
       <WalletBalanceBanner balance={walletBalance} compact />
 
-      <div className="glass-panel animate-fade-in-up rounded-xl p-3 sm:p-4 md:p-5">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-2 sm:mb-4">
-          <div className="text-sm font-semibold sm:text-base">
-            📊 Daily Profit vs Petrol Cost
-          </div>
-          <div className={profitBadgeClass(totalProfit)}>
-            💰 Total {fmt(totalProfit)}
-          </div>
-        </div>
-        <div className="h-[220px] w-full sm:h-[260px] md:h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart key={`daily-bar-${chartKey}`} data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e2740" vertical={false} />
-              <XAxis
-                dataKey="label"
-                stroke="#6b7a9e"
-                tick={{ fontSize: 10, fill: '#6b7a9e' }}
-                tickLine={false}
-                interval="preserveStartEnd"
-                minTickGap={12}
-              />
-              <YAxis
-                stroke="#6b7a9e"
-                tick={{ fontSize: 10, fill: '#6b7a9e' }}
-                tickLine={false}
-                axisLine={false}
-                width={42}
-                tickFormatter={(v) => `₹${v}`}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-              <Bar dataKey="Profit" fill="#f7c948" radius={[4, 4, 0, 0]} name="Profit" />
-              <Bar dataKey="Petrol" fill="#f43f5e" radius={[4, 4, 0, 0]} name="Petrol" />
-              <Bar dataKey="Incentive" fill="#10b981" radius={[4, 4, 0, 0]} name="Incentive" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+      <DailyProfitPetrolPanel
+        chartData={chartData}
+        chartKey={chartKey}
+        totalProfit={totalProfit}
+      />
+
+      <ProfitRangePanel filteredDaily={filteredDaily} chartKey={chartKey} />
 
       <div className="glass-panel animate-fade-in-up overflow-x-auto rounded-xl">
         <p className="px-3 pt-2 text-[10px] text-[#6b7a9e] sm:hidden">
