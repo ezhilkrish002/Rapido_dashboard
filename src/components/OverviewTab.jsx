@@ -208,25 +208,49 @@ export default function OverviewTab({
           delay={175}
         />
         <StatCard
+          label="Wallet Recharge"
+          value={fmt(stats.walletRecharge ?? 0)}
+          sub="Total wallet credits"
+          color="#a855f7"
+          icon="💳"
+          delay={200}
+        />
+        <StatCard
+          label="Commission"
+          value={fmt(stats.totalCommission || 0)}
+          sub="Platform commission"
+          color="#ec4899"
+          icon="📋"
+          delay={225}
+        />
+        <StatCard
+          label="Platform Detection"
+          value={fmt(stats.totalDetection || 0)}
+          sub="Detection deductions"
+          color="#f97316"
+          icon="⚠️"
+          delay={250}
+        />
+        <StatCard
           label="Petrol Spent"
           value={fmt(stats.totalPetrol || 0)}
           color="#f43f5e"
           icon="⛽"
-          delay={200}
+          delay={275}
         />
         <StatCard
           label="Incentives"
           value={fmt(stats.totalIncentive || 0)}
-          color="#f97316"
+          color="#eab308"
           icon="🎯"
-          delay={250}
+          delay={300}
         />
         <StatCard
           label="Tips Earned"
           value={fmt(stats.totalTips || 0)}
           color="#06b6d4"
           icon="🌟"
-          delay={300}
+          delay={325}
         />
         <StatCard
           label="Best Day"

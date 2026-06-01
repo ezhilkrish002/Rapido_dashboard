@@ -121,7 +121,15 @@ export default function App() {
 
   const stats = useMemo(() => {
     const d = filteredDaily;
-    if (!d.length) return { workDays: 0 };
+    if (!d.length) {
+      return {
+        workDays: 0,
+        totalCommission: 0,
+        totalDetection: 0,
+        walletRecharge: walletStats.recharge ?? 0,
+        walletBalance: walletStats.balance ?? 0,
+      };
+    }
     const totalProfit = d.reduce((s, r) => s + r.Profit, 0);
     const totalRevenue = d.reduce((s, r) => s + r.Total, 0);
     const totalOrders = d.reduce((s, r) => s + r.Orders, 0);
