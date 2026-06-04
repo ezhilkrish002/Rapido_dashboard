@@ -22,6 +22,8 @@ import {
   persistDashboard,
 } from './utils/dashboardState.js';
 import { useToast } from './context/ToastContext.jsx';
+import { useLinkedExcelSync } from './hooks/useLinkedExcelSync.js';
+import LinkedExcelHelp from './components/LinkedExcelHelp.jsx';
 
 export default function App() {
   const { toast } = useToast();
@@ -34,6 +36,29 @@ export default function App() {
   const { daily, rides, expenses, walletMeta, lastUpdated, uploadId } = dashboard;
 
   const dataBounds = useMemo(() => getDataDateBounds(daily), [daily, uploadId]);
+
+  const applyExcelToDashboard = useCallback((result) => {
+    if (!result?.ok) return false;
+    setDashboard((prev) => {
+      const next = buildDashboardFromExcel(result, prev);
+      persistDashboard(next);
+      return next;
+    });
+    return true;
+  }, []);
+
+  const {
+    linkSupported,
+    linkedFileName,
+    lastSyncedAt,
+    syncing,
+    handleLinkExcel,
+    handleUnlinkExcel,
+    syncFromLinked,
+  } = useLinkedExcelSync({
+    toast,
+    onParsed: (result) => applyExcelToDashboard(result),
+  });
 
   const handleFile = useCallback(
     async (e) => {
@@ -52,12 +77,7 @@ export default function App() {
           return;
         }
 
-        setDashboard((prev) => {
-          const next = buildDashboardFromExcel(result, prev);
-          persistDashboard(next);
-          return next;
-        });
-
+        applyExcelToDashboard(result);
         setDateFilter(DEFAULT_DATE_FILTER);
         setFileInputKey((k) => k + 1);
 
@@ -84,7 +104,7 @@ export default function App() {
         setUploading(false);
       }
     },
-    [toast]
+    [toast, applyExcelToDashboard]
   );
 
   const filteredDaily = useMemo(
@@ -227,9 +247,16 @@ export default function App() {
           onDateFilter={setDateFilter}
           dataBounds={dataBounds}
           uploading={uploading}
+          syncing={syncing}
           onFile={handleFile}
           fileInputKey={fileInputKey}
           walletBalance={walletStats.balance ?? 0}
+          linkSupported={linkSupported}
+          linkedFileName={linkedFileName}
+          lastSyncedAt={lastSyncedAt}
+          onLinkExcel={handleLinkExcel}
+          onUnlinkExcel={handleUnlinkExcel}
+          onSyncNow={() => syncFromLinked({ silent: false, force: true })}
         />
 
         <Tabs tab={tab} onTab={setTab} />
@@ -274,11 +301,11 @@ export default function App() {
           )}
         </div>
 
-        <div className="mt-6 animate-fade-in px-2 text-center text-[11px] text-[#6b7a9e] sm:mt-8">
-          Upload your updated{' '}
-          <strong className="text-[#f7c948]">Rap_1.xlsx</strong> anytime to refresh
-          all data automatically
-        </div>
+        <LinkedExcelHelp linkSupported={linkSupported} />
+        <p className="mt-4 animate-fade-in px-2 text-center text-[11px] text-[#6b7a9e] sm:mt-5">
+          <strong className="text-[#3b82f6]">Link Excel</strong> to auto-sync on save, or{' '}
+          <strong className="text-[#f7c948]">Upload Excel</strong> for a one-time import.
+        </p>
       </div>
     </>
   );
